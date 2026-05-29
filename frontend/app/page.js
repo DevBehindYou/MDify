@@ -400,7 +400,7 @@ export default function Home() {
                 setServerStatus(res.ok ? 'online' : 'offline');
               } catch { setServerStatus('offline'); }
             }}
-            className="flex items-center gap-1.5 text-[11px] hover:opacity-80 transition-opacity"
+            className="flex items-center gap-1.5 text-[11px] hover:opacity-80 transition-opacity hidden sm:flex"
             title="Click to refresh backend status"
           >
             <span className={`w-1.5 h-1.5 rounded-full flex-none ${
@@ -426,10 +426,10 @@ export default function Home() {
       </header>
 
       {/* ── Two-panel body ── */}
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
 
         {/* ─────── LEFT: INPUT PANEL ─────── */}
-        <div className="w-[44%] flex flex-col p-4 gap-3 min-h-0 border-r" style={{ borderColor: '#1A1A1F' }}>
+        <div className="md:w-[44%] w-full flex flex-col p-3 md:p-4 gap-3 min-h-0 min-w-0 h-[46vh] md:h-auto border-b md:border-b-0 md:border-r" style={{ borderColor: '#1A1A1F' }}>
 
           {/* Panel label */}
           <div className="flex items-center justify-between flex-none">
@@ -453,7 +453,7 @@ export default function Home() {
             onDragLeave={handleDragLeave}
             onClick={() => !isFull && fileInputRef.current?.click()}
             className={`
-              relative flex-none rounded-xl border-2 border-dashed p-6 text-center select-none
+              relative flex-none rounded-xl border-2 border-dashed p-4 md:p-6 text-center select-none
               transition-all duration-200
               ${isFull ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
               ${dragActive
@@ -563,22 +563,38 @@ export default function Home() {
         </div>
 
         {/* ─────── RIGHT: OUTPUT PANEL ─────── */}
-        <div className="flex-1 flex flex-col p-4 gap-3 min-h-0">
+        <div className="flex-1 flex flex-col p-3 md:p-4 gap-3 min-h-0 min-w-0 h-[54vh] md:h-auto">
 
-          {/* Panel label + download all */}
+          {/* Panel label */}
           <div className="flex items-center justify-between flex-none">
             <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-600">
               Output
             </span>
-            {results.length > 1 && (
+            <span className="text-[10px] text-zinc-700">
+              {results.length > 0 ? `${results.length} file${results.length !== 1 ? 's' : ''} converted` : ''}
+            </span>
+          </div>
+
+          {/* ── Download All strip — always visible when 2+ results ── */}
+          {results.length > 1 && (
+            <div
+              className="flex-none flex items-center justify-between px-3 py-2 rounded-xl"
+              style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.18)' }}
+            >
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-zinc-600">
+                  {results.length} files ready to download
+                </span>
+              </div>
               <button
                 onClick={downloadAll}
-                className="text-[11px] text-amber-500 hover:text-amber-400 transition-colors font-medium"
+                className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-lg text-black transition-all"
+                style={{ background: 'linear-gradient(135deg, #F59E0B, #D97706)', boxShadow: '0 0 12px rgba(245,158,11,0.2)' }}
               >
-                ↓ Download all ({results.length})
+                ↓ Download all {results.length} .md files
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Empty state */}
           {results.length === 0 && <EmptyOutput />}
@@ -586,15 +602,16 @@ export default function Home() {
           {/* Results view */}
           {results.length > 0 && (
             <>
-              {/* Tab bar */}
-              <div className="flex-none flex gap-1 overflow-x-auto pb-0.5">
+              {/* Tab bar — horizontally scrollable, tabs truncated */}
+              <div className="flex-none flex gap-1 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'thin' }}>
                 {results.map((result, i) => (
                   <button
                     key={result.id}
                     onClick={() => setActiveResult(i)}
+                    title={result.filename}
                     className={`
-                      flex-none text-[11px] font-medium px-2.5 py-1 rounded-lg whitespace-nowrap
-                      transition-all duration-150
+                      flex-none text-[11px] font-medium px-2.5 py-1 rounded-lg
+                      transition-all duration-150 max-w-[160px] md:max-w-[200px]
                       ${activeResult === i
                         ? 'text-amber-400'
                         : 'text-zinc-600 hover:text-zinc-400'
@@ -606,7 +623,7 @@ export default function Home() {
                         : { background: '#111114', border: '1px solid #1F1F24' }
                     }
                   >
-                    {result.filename}
+                    <span className="block truncate">{result.filename}</span>
                   </button>
                 ))}
               </div>
@@ -616,25 +633,26 @@ export default function Home() {
                 <div className="flex-1 flex flex-col gap-2 min-h-0">
 
                   {/* Toolbar */}
-                  <div className="flex-none flex items-center justify-between">
+                  <div className="flex-none flex items-center justify-between gap-2 min-w-0">
                     {/* Meta info */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                       <span
-                        className="text-[10px] font-mono text-zinc-500 px-2 py-0.5 rounded-md"
+                        className="text-[10px] font-mono text-zinc-500 px-2 py-0.5 rounded-md truncate max-w-[140px] md:max-w-[260px]"
                         style={{ background: '#16161A', border: '1px solid #1F1F24' }}
+                        title={currentResult.filename}
                       >
                         {currentResult.filename}
                       </span>
-                      <span className="text-[10px] text-zinc-700">
+                      <span className="text-[10px] text-zinc-700 hidden sm:inline whitespace-nowrap">
                         {currentResult.word_count?.toLocaleString()} words
                       </span>
-                      <span className="text-[10px] text-zinc-700">
+                      <span className="text-[10px] text-zinc-700 hidden sm:inline whitespace-nowrap">
                         {currentResult.char_count?.toLocaleString()} chars
                       </span>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-none">
                       <button
                         onClick={copyToClipboard}
                         className="text-[11px] px-2.5 py-1 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"
