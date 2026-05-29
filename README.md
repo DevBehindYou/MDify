@@ -1,35 +1,169 @@
-# MarkItDown Web
+<p align="center">
+  <img src="frontend/public/mdify-icon.png" width="80" height="80" alt="MDify logo" />
+</p>
 
-> Convert any document to clean Markdown — PDF, Word, Excel, PowerPoint, HTML, and more.  
-> Powered by [Microsoft MarkItDown](https://github.com/microsoft/markitdown).
+<h1 align="center">MDify</h1>
+
+<p align="center">
+  <strong>Document → Markdown converter, powered by <a href="https://github.com/microsoft/markitdown">Microsoft MarkItDown</a></strong><br/>
+  Upload any file. Get clean, structured <code>.md</code> in seconds.
+</p>
+
+<p align="center">
+  <a href="https://mdify-app.onrender.com"><img src="https://img.shields.io/badge/Live%20Demo-mdify--app.onrender.com-F59E0B?style=flat-square&logo=render&logoColor=white" alt="Live Demo" /></a>
+  <a href="https://github.com/DevBehindYou"><img src="https://img.shields.io/badge/Developer-DevBehindYou-181717?style=flat-square&logo=github&logoColor=white" alt="Developer" /></a>
+  <a href="https://github.com/microsoft/markitdown"><img src="https://img.shields.io/badge/Powered%20by-MarkItDown-0078D4?style=flat-square&logo=microsoft&logoColor=white" alt="MarkItDown" /></a>
+  <img src="https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js" alt="Next.js 14" />
+  <img src="https://img.shields.io/badge/FastAPI-Python%203.11-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
+</p>
 
 ---
 
-## Stack
+## What is MDify?
 
-| Layer    | Tech                          |
-|----------|-------------------------------|
-| Frontend | Next.js 14 · Tailwind CSS     |
-| Backend  | Python · FastAPI · MarkItDown |
-| Deploy   | Render (recommended)          |
+MDify is a free, open-source web app that converts documents to clean Markdown using Microsoft's [MarkItDown](https://github.com/microsoft/markitdown) library.
+
+**Core flow:**
+
+```
+Upload files (drag & drop or browse)
+        ↓
+Click "Convert N files"
+        ↓
+Preview Markdown output inline
+        ↓
+Copy to clipboard or download .md files
+```
+
+Up to **10 files per session**, batch conversion, tabbed output viewer, and syntax-highlighted Markdown preview — all in a single-page dark UI.
+
+---
+
+## Live Demo
+
+| Service  | URL |
+|----------|-----|
+| Frontend | https://mdify-app.onrender.com |
+| Backend  | https://mdify-api.onrender.com |
+| Why Use It? | https://mdify-app.onrender.com/usecase |
+
+> **Free tier note:** Render free services sleep after 15 min of inactivity. First request may take 20–30 s to wake up.
+
+---
+
+## Supported File Types
+
+| Format | Extensions | Notes |
+|--------|-----------|-------|
+| PDF | `.pdf` | Text extraction via pdfminer-six |
+| Word | `.docx` `.doc` | Via mammoth |
+| Excel | `.xlsx` `.xls` | Via openpyxl / xlrd |
+| PowerPoint | `.pptx` `.ppt` | Via python-pptx |
+| HTML | `.html` `.htm` | Via BeautifulSoup4 |
+| Plain text | `.txt` | Direct read |
+| CSV | `.csv` | Converted to Markdown table |
+| JSON | `.json` | Formatted and converted |
+| XML | `.xml` | Parsed and converted |
+| ePub | `.epub` | Extracted and converted |
+| Audio | `.wav` `.mp3` | Transcribed via SpeechRecognition |
+| Image | `.jpg` `.jpeg` `.png` | OCR via ONNX + Pillow |
+| Archive | `.zip` | Contents extracted and converted |
+
+---
+
+## Architecture
+
+```
+Browser
+  │
+  │  POST /api/convert  (multipart/form-data)
+  │  GET  /api/health
+  ▼
+┌─────────────────────────────────────┐
+│  mdify-app.onrender.com             │
+│  Next.js 14  ·  Node 20            │
+│                                     │
+│  next.config.js rewrites            │
+│  /api/health  → backend /health     │
+│  /api/convert → backend /convert    │
+└──────────────┬──────────────────────┘
+               │  Reverse-proxy (no body size limit)
+               ▼
+┌─────────────────────────────────────┐
+│  mdify-api.onrender.com             │
+│  FastAPI  ·  Python 3.11            │
+│  MarkItDown 0.1.x                   │
+│                                     │
+│  GET  /health   → status check      │
+│  POST /convert  → file conversion   │
+└─────────────────────────────────────┘
+```
+
+The Next.js app acts as a transparent reverse proxy via `next.config.js` rewrites — the browser never communicates directly with the Python backend.
+
+---
+
+## Project Structure
+
+```
+MDify/
+├── render.yaml               Render blueprint (one-click deploy)
+├── README.md
+├── markitdown-setup-guide.pdf
+│
+├── backend/
+│   ├── main.py               FastAPI server (all conversion logic)
+│   ├── requirements.txt      Python dependencies
+│   └── .env.example
+│
+└── frontend/
+    ├── package.json
+    ├── next.config.js        Rewrite rules → backend proxy
+    ├── tailwind.config.js    Design tokens + custom theme
+    ├── postcss.config.js
+    ├── .env.example
+    └── app/
+        ├── layout.js         HTML shell + fonts + metadata
+        ├── globals.css       Base styles + animations
+        ├── page.js           Main converter UI (~800 lines)
+        └── usecase/
+            └── page.js       /usecase — why use MDify?
+```
 
 ---
 
 ## Local Development
+
+### Prerequisites
+
+- **Python 3.10+**
+- **Node.js 18+**
+
+---
 
 ### 1 — Backend (Python / FastAPI)
 
 ```bash
 cd backend
 
+# Create virtual environment
 python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
 
+# Activate (macOS / Linux)
+source venv/bin/activate
+# Activate (Windows)
+venv\Scripts\activate
+
+# Install dependencies (~500 MB — includes MarkItDown extras)
 pip install -r requirements.txt
 
+# Start API server with hot reload
 uvicorn main:app --reload --port 8000
 # → http://localhost:8000
+# → http://localhost:8000/docs  (Swagger UI)
 ```
+
+---
 
 ### 2 — Frontend (Next.js)
 
@@ -37,142 +171,96 @@ Open a second terminal:
 
 ```bash
 cd frontend
-cp .env.example .env.local      # BACKEND_URL=http://localhost:8000
 
+# Copy env template (sets BACKEND_URL=http://localhost:8000)
+cp .env.example .env.local
+
+# Install packages
 npm install
+
+# Start dev server with hot reload
 npm run dev
 # → http://localhost:3000
 ```
 
 ---
 
-## Deploy to Render
-
-This is the recommended platform. The Python backend runs as a persistent web
-service — no serverless timeouts or 250 MB size caps.
-
-### Step 1 — Push to GitHub
+### Verify the connection
 
 ```bash
-git init
-git add .
-git commit -m "init: markitdown-web"
-git remote add origin https://github.com/YOUR_USER/markitdown-web.git
-git push -u origin main
+# Backend health check
+curl http://localhost:8000/health
+# → {"status":"ok","markitdown":true}
 ```
 
-### Step 2 — Deploy backend first
+---
 
-1. Go to [render.com/new](https://render.com/new) → **Web Service**
-2. Connect your GitHub repo
-3. Set **Root Directory** → `backend`
-4. Runtime: **Python 3**
-5. Build command: `pip install -r requirements.txt`
-6. Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-7. Click **Deploy**
-8. Copy the live URL, e.g. `https://markitdown-backend.onrender.com`
+## Deploy to Render
 
-### Step 3 — Deploy frontend
-
-1. Render → **New Web Service** → same repo
-2. Root Directory → `frontend`
-3. Runtime: **Node**
-4. Build command: `npm install && npm run build`
-5. Start command: `npm start`
-6. **Environment Variables**:
-   - `BACKEND_URL` = `https://markitdown-backend.onrender.com` ← from Step 2
-   - `PORT` = `3000`
-7. Click **Deploy**
-8. Copy the live URL, e.g. `https://markitdown-frontend.onrender.com`
-
-### Step 4 — Wire CORS
-
-1. Go back to the **backend** service on Render → Environment
-2. Add `FRONTEND_URL` = `https://markitdown-frontend.onrender.com`
-3. Click **Save Changes** — Render redeploys automatically
-
-Done. Both services are live and talking to each other.
-
-> **Free tier note**: Render free services sleep after 15 minutes of inactivity.
-> Upgrade to the Starter plan ($7/mo) for always-on behaviour.
-
-### One-click deploy with render.yaml
-
-Alternatively, use the included `render.yaml` blueprint:
+### Option A — One-click Blueprint
 
 1. Render dashboard → **New → Blueprint**
-2. Connect repo — Render auto-reads `render.yaml` and creates both services
-3. Fill in the two env vars (`BACKEND_URL`, `FRONTEND_URL`) after the first deploy
+2. Connect this GitHub repo — Render reads `render.yaml` and creates both services
+3. After first deploy, fill in environment variables:
+   - `BACKEND_URL` on the frontend service → your backend Render URL
+   - `FRONTEND_URL` on the backend service → your frontend Render URL
+4. Trigger a redeploy on both services
 
 ---
 
-## Supported File Types
+### Option B — Manual Deploy
 
-| Format     | Extensions                      |
-|------------|----------------------------------|
-| PDF        | `.pdf`                           |
-| Word       | `.docx` `.doc`                   |
-| Excel      | `.xlsx` `.xls`                   |
-| PowerPoint | `.pptx` `.ppt`                   |
-| Web        | `.html` `.htm`                   |
-| Text       | `.txt` `.csv` `.json` `.xml`     |
-| E-book     | `.epub`                          |
-| Audio      | `.wav` `.mp3` (needs Whisper)    |
-| Image      | `.jpg` `.jpeg` `.png` (OCR)      |
-| Archive    | `.zip`                           |
+**Deploy backend first:**
 
----
+| Setting | Value |
+|---------|-------|
+| Runtime | Python 3 |
+| Root Directory | `backend/` |
+| Build command | `pip install -r requirements.txt` |
+| Start command | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
 
-## Project Structure
+**Then deploy frontend:**
 
-```
-markitdown-web/
-├── render.yaml                  ← Render blueprint (both services)
-├── .gitignore
-├── README.md
-├── backend/
-│   ├── main.py                  ← FastAPI server
-│   ├── requirements.txt
-│   └── .env.example
-└── frontend/
-    ├── package.json
-    ├── next.config.js           ← uses BACKEND_URL env var
-    ├── tailwind.config.js
-    ├── postcss.config.js
-    ├── .env.example
-    └── app/
-        ├── layout.js
-        ├── globals.css
-        ├── page.js              ← full UI (single page, two panels)
-        └── api/
-            └── convert/
-                └── route.js    ← Next.js → FastAPI proxy
-```
+| Setting | Value |
+|---------|-------|
+| Runtime | Node |
+| Root Directory | `frontend/` |
+| Build command | `npm install && npm run build` |
+| Start command | `npm start` |
+| Environment variable | `BACKEND_URL` = your backend URL from above |
+
+**Finally, wire CORS:**
+
+Go back to the backend service → Environment → add `FRONTEND_URL` = your frontend URL → Save.
 
 ---
 
-## Environment Variables Reference
+## Stack
 
-### Frontend (`frontend/.env.local`)
+| Layer | Tech |
+|-------|------|
+| Frontend | Next.js 14, React 18, Tailwind CSS |
+| Backend | Python 3.11, FastAPI, Uvicorn |
+| Conversion | Microsoft MarkItDown |
+| Deploy | Render |
 
-| Variable      | Default                    | Description                    |
-|---------------|----------------------------|--------------------------------|
-| `BACKEND_URL` | `http://localhost:8000`    | URL of the FastAPI backend     |
+---
 
-### Backend (`backend/.env`)
+## Developer
 
-| Variable       | Default                   | Description                          |
-|----------------|---------------------------|--------------------------------------|
-| `FRONTEND_URL` | `http://localhost:3000`   | Comma-separated allowed CORS origins |
+Built by **[DevBehindYou](https://github.com/DevBehindYou)**
+
+Powered by Microsoft's open-source [MarkItDown](https://github.com/microsoft/markitdown) library.
 
 ---
 
 ## Troubleshooting
 
-| Issue                          | Fix                                                                 |
-|--------------------------------|---------------------------------------------------------------------|
-| "Backend offline" badge        | Make sure `uvicorn main:app` is running and `BACKEND_URL` is correct |
-| `ImportError: markitdown`      | Run `pip install 'markitdown[all]'` inside your virtualenv          |
-| Audio/image conversion fails   | `markitdown[all]` includes Whisper + pytesseract; confirm install   |
-| CORS errors in browser         | Set `FRONTEND_URL` on the backend service to match the frontend URL |
-| Render free tier sleeps        | Upgrade to Starter ($7/mo) or add an uptime monitor (e.g. UptimeRobot) |
+| Issue | Fix |
+|-------|-----|
+| "Backend offline" badge | Confirm `uvicorn` is running and `BACKEND_URL` is correct |
+| `ImportError: markitdown` | Run `pip install 'markitdown[all]'` in your virtualenv |
+| Audio/image conversion fails | `markitdown[all]` includes Whisper + OCR; verify install |
+| CORS errors in browser | Set `FRONTEND_URL` on the backend to match your frontend URL |
+| Render free tier sleeps | Upgrade to Starter ($7/mo) or add an uptime monitor (e.g. UptimeRobot) |
+| `BACKEND_URL` not updating | This is read at build time — trigger a full frontend redeploy after changing it |

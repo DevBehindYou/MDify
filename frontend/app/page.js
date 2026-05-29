@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import Link from 'next/link';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -201,6 +202,7 @@ export default function Home() {
   const [dragActive, setDragActive]     = useState(false);
   const [serverStatus, setServerStatus] = useState('checking');
   const [copied, setCopied]             = useState(false);
+  const [logoHover, setLogoHover]       = useState(false);
 
   const fileInputRef   = useRef(null);
   const convertingIds  = useRef(new Set());
@@ -370,10 +372,15 @@ export default function Home() {
       <header className="flex-none flex items-center justify-between px-5 py-3 border-b"
         style={{ borderColor: '#1A1A1F' }}>
         <div className="flex items-center gap-3">
-          {/* Logo mark */}
-          <div className="relative flex-none">
+          {/* Logo mark + hover popup */}
+          <div
+            className="relative flex-none"
+            onMouseEnter={() => setLogoHover(true)}
+            onMouseLeave={() => setLogoHover(false)}
+          >
+            {/* Icon */}
             <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black cursor-pointer select-none"
               style={{
                 background: 'linear-gradient(135deg, #F59E0B, #D97706)',
                 boxShadow: '0 0 12px rgba(245,158,11,0.3)',
@@ -382,10 +389,77 @@ export default function Home() {
             >
               M↓
             </div>
+
+            {/* Hover popup */}
+            {logoHover && (
+              <div
+                className="absolute top-full left-0 mt-2 z-50 rounded-xl p-4 flex flex-col gap-3 w-56"
+                style={{
+                  background: '#111114',
+                  border: '1px solid #2A2A30',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(245,158,11,0.08)',
+                  animation: 'slideUp 0.15s ease-out forwards',
+                }}
+              >
+                {/* App branding */}
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black flex-none"
+                    style={{
+                      background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                      color: '#000',
+                    }}
+                  >
+                    M↓
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-zinc-100 leading-tight">MDify</p>
+                    <p className="text-[10px] text-zinc-500 leading-tight">Document → Markdown</p>
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div style={{ borderTop: '1px solid #1F1F24' }} />
+
+                {/* Dev info */}
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-semibold">Developer</p>
+                  <a
+                    href="https://github.com/DevBehindYou"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 group/link"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" className="text-zinc-500 group-hover/link:text-amber-400 transition-colors flex-none">
+                      <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                    <span className="text-xs text-zinc-400 group-hover/link:text-amber-400 transition-colors font-medium">DevBehindYou</span>
+                  </a>
+                </div>
+
+                {/* Divider */}
+                <div style={{ borderTop: '1px solid #1F1F24' }} />
+
+                {/* Why Use It */}
+                <Link
+                  href="/usecase"
+                  className="flex items-center justify-between group/usecase"
+                >
+                  <span className="text-xs text-zinc-400 group-hover/usecase:text-amber-400 transition-colors font-medium">Why Use It?</span>
+                  <span className="text-[10px] text-zinc-600 group-hover/usecase:text-amber-500 transition-colors">→</span>
+                </Link>
+              </div>
+            )}
           </div>
-          <div>
-            <h1 className="text-sm font-semibold leading-tight tracking-tight">MarkItDown</h1>
-            <p className="text-[10px] text-zinc-600 leading-tight">by Microsoft · Document → Markdown</p>
+
+          {/* App title (also triggers hover) */}
+          <div
+            className="cursor-default select-none"
+            onMouseEnter={() => setLogoHover(true)}
+            onMouseLeave={() => setLogoHover(false)}
+          >
+            <h1 className="text-sm font-semibold leading-tight tracking-tight">MDify</h1>
+            <p className="text-[10px] text-zinc-600 leading-tight">by DevBehindYou · powered by MarkItDown</p>
           </div>
         </div>
 
@@ -727,9 +801,18 @@ export default function Home() {
         style={{ borderColor: '#1A1A1F', background: '#08080A' }}
       >
         <div className="flex items-center gap-3 text-[10px] text-zinc-700">
-          <span>MarkItDown v0.1</span>
+          <span>MDify</span>
           <span className="text-zinc-800">·</span>
-          <span>microsoft/markitdown</span>
+          <a
+            href="https://github.com/DevBehindYou"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-amber-500/70 transition-colors"
+          >
+            DevBehindYou
+          </a>
+          <span className="text-zinc-800">·</span>
+          <span>Powered by MarkItDown</span>
         </div>
         <div className="flex items-center gap-3 text-[10px] text-zinc-700">
           {doneCount > 0 && (
