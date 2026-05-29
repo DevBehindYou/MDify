@@ -1,0 +1,37 @@
+# render.yaml — deploys both services in one click from the Render dashboard.
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  # ── Python FastAPI backend ──────────────────────────────────────────────────
+  - type: web
+    name: markitdown-backend
+    runtime: python
+    rootDir: backend
+    plan: free                       # upgrade to Starter ($7/mo) for no sleep
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      # Set FRONTEND_URL after the frontend is first deployed so CORS is correct.
+      # Example: https://markitdown-frontend.onrender.com
+      - key: FRONTEND_URL
+        value: ""                    # fill in after first deploy
+
+  # ── Next.js frontend ────────────────────────────────────────────────────────
+  - type: web
+    name: markitdown-frontend
+    runtime: node
+    rootDir: frontend
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.0
+      # Point at the backend service URL — fill in after backend is first deployed.
+      # Example: https://markitdown-backend.onrender.com
+      - key: BACKEND_URL
+        value: ""                    # fill in after first deploy
+      - key: PORT
+        value: "3000"
