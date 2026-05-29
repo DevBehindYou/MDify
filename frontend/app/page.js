@@ -262,9 +262,16 @@ export default function Home() {
 
     try {
       const res  = await fetch('/api/convert', { method: 'POST', body: form });
-      const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || 'Conversion failed');
+      // Guard against non-JSON responses (e.g. Render gateway errors)
+      let data = {};
+      try { data = await res.json(); } catch { /* keep empty data */ }
+
+      if (!res.ok) {
+        // FastAPI errors use `detail`; previous route.js used `error`
+        const msg = data.error || data.detail || `Server error (${res.status})`;
+        throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      }
 
       setFiles((prev) =>
         prev.map((f) => f.id === fileObj.id ? { ...f, status: 'done' } : f)
