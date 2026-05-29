@@ -379,16 +379,12 @@ export default function Home() {
             onMouseLeave={() => setLogoHover(false)}
           >
             {/* Icon */}
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black cursor-pointer select-none"
-              style={{
-                background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                boxShadow: '0 0 12px rgba(245,158,11,0.3)',
-                color: '#000',
-              }}
-            >
-              M↓
-            </div>
+            <img
+              src="/mdify-icon.png"
+              alt="MDify"
+              className="w-7 h-7 rounded-lg cursor-pointer select-none object-cover"
+              style={{ boxShadow: '0 0 10px rgba(0,0,0,0.5)' }}
+            />
 
             {/* Hover popup */}
             {logoHover && (
@@ -403,15 +399,12 @@ export default function Home() {
               >
                 {/* App branding */}
                 <div className="flex items-center gap-2">
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black flex-none"
-                    style={{
-                      background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                      color: '#000',
-                    }}
-                  >
-                    M↓
-                  </div>
+                  <img
+                    src="/mdify-icon.png"
+                    alt="MDify"
+                    className="w-8 h-8 rounded-lg flex-none object-cover"
+                    style={{ boxShadow: '0 0 8px rgba(0,0,0,0.5)' }}
+                  />
                   <div>
                     <p className="text-sm font-semibold text-zinc-100 leading-tight">MDify</p>
                     <p className="text-[10px] text-zinc-500 leading-tight">Document → Markdown</p>

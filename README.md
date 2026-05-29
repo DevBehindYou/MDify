@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="frontend/public/mdify-icon.png" width="80" height="80" alt="MDify logo" />
+  <img src="frontend/public/mdify-icon.png" width="80" height="80" alt="MDify logo" style="border-radius:18px" />
 </p>
 
 <h1 align="center">MDify</h1>

@@ -108,16 +108,12 @@ export default function UseCasePage() {
         style={{ borderColor: '#1A1A1F', background: 'rgba(8,8,10,0.95)', backdropFilter: 'blur(12px)' }}
       >
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black transition-transform group-hover:scale-105"
-            style={{
-              background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-              boxShadow: '0 0 12px rgba(245,158,11,0.3)',
-              color: '#000',
-            }}
-          >
-            M↓
-          </div>
+          <img
+            src="/mdify-icon.png"
+            alt="MDify"
+            className="w-7 h-7 rounded-lg object-cover transition-transform group-hover:scale-105"
+            style={{ boxShadow: '0 0 8px rgba(0,0,0,0.5)' }}
+          />
           <span className="text-sm font-semibold">MDify</span>
         </Link>
 
@@ -472,16 +468,12 @@ export default function UseCasePage() {
         className="px-6 py-16 text-center flex flex-col items-center gap-6"
         style={{ background: 'rgba(245,158,11,0.03)', borderTop: '1px solid rgba(245,158,11,0.08)' }}
       >
-        <div
-          className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black"
-          style={{
-            background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-            boxShadow: '0 0 40px rgba(245,158,11,0.3)',
-            color: '#000',
-          }}
-        >
-          M↓
-        </div>
+        <img
+          src="/mdify-icon.png"
+          alt="MDify"
+          className="w-14 h-14 rounded-2xl object-cover"
+          style={{ boxShadow: '0 0 40px rgba(0,0,0,0.6)' }}
+        />
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Ready to convert?</h2>
         <p className="text-sm text-zinc-500 max-w-sm">
           Drop any document and get clean Markdown in seconds. No account needed.
