@@ -233,7 +233,7 @@ export default function Home() {
     setWakeCountdown(null);
   }, []);
 
-  // ── Server health check — polls every 5 s, wakes backend immediately
+  // ── Server health check — polls every 5 s, wakes backend on mount
   useEffect(() => {
     const check = async () => {
       try {
@@ -242,20 +242,20 @@ export default function Home() {
         });
         if (res.ok) {
           setServerStatus('online');
-          stopCountdown();
+          stopCountdown();          // clear countdown as soon as we're online
         } else {
           setServerStatus('offline');
-          startCountdown();
+          startCountdown();         // only start counting if backend is NOT ok
         }
       } catch {
         setServerStatus('offline');
-        startCountdown();
+        startCountdown();           // only start counting on actual failure
       }
     };
 
-    // Fire immediately on mount to trigger backend wake-up
+    // Fire immediately on mount — this wakes the Render backend
+    // Do NOT start countdown here; wait for the actual check result.
     check();
-    startCountdown(); // start countdown optimistically
 
     // Poll every 5 s
     pollRef.current = setInterval(check, 5000);

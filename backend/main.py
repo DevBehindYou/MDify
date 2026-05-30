@@ -8,7 +8,6 @@ from pathlib import Path
 app = FastAPI(title="MarkItDown API", version="1.0.0")
 
 # CORS: read allowed origins from env so the Render frontend URL is accepted in prod.
-# FRONTEND_URL=https://markitdown-frontend.onrender.com  (set in Render dashboard)
 _raw = os.getenv("FRONTEND_URL", "")
 _extra = [u.strip() for u in _raw.split(",") if u.strip()]
 ALLOWED_ORIGINS = [
@@ -34,16 +33,12 @@ except ImportError:
     md_converter = None
     MARKITDOWN_AVAILABLE = False
 
-# ── RapidOCR (lightweight pure-Python OCR, no system binaries required) ──────
-try:
-    from rapidocr_onnxruntime import RapidOCR
-    _ocr_engine = RapidOCR()
-    RAPIDOCR_AVAILABLE = True
-except Exception:
-    _ocr_engine = None
-    RAPIDOCR_AVAILABLE = False
+# ── Lazy OCR globals (initialised on first image request, not at startup) ─────
+_ocr_engine = None          # RapidOCR instance, created on demand
+_ocr_checked = False        # True once we've tried to import RapidOCR
+RAPIDOCR_AVAILABLE = False  # Updated after first attempt
 
-# ── Pillow (for image pre-processing / metadata) ─────────────────────────────
+# ── Pillow (lightweight — safe to import at startup) ─────────────────────────
 try:
     from PIL import Image as PILImage
     PILLOW_AVAILABLE = True
@@ -54,28 +49,52 @@ except ImportError:
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".tif", ".webp"}
 
 
+def _get_ocr_engine():
+    """
+    Lazily import and initialise RapidOCR on the first image request.
+    This avoids loading PyTorch/ONNX models at startup, preventing OOM crashes
+    on Render's 512 MB free tier.
+    """
+    global _ocr_engine, _ocr_checked, RAPIDOCR_AVAILABLE
+    if _ocr_checked:
+        return _ocr_engine  # already tried (may be None if unavailable)
+
+    _ocr_checked = True
+    try:
+        from rapidocr_onnxruntime import RapidOCR
+        _ocr_engine = RapidOCR()
+        RAPIDOCR_AVAILABLE = True
+    except Exception:
+        _ocr_engine = None
+        RAPIDOCR_AVAILABLE = False
+
+    return _ocr_engine
+
+
 def ocr_image(image_path: str) -> str:
     """
-    Run RapidOCR on an image file and return the extracted text as Markdown.
-    Falls back to a Pillow-based metadata block if OCR is unavailable.
+    Run RapidOCR on an image and return extracted text as Markdown.
+    Falls back to Pillow metadata if OCR is unavailable.
     """
-    if RAPIDOCR_AVAILABLE and _ocr_engine is not None:
+    engine = _get_ocr_engine()
+
+    if engine is not None:
         try:
-            result, _ = _ocr_engine(image_path)
+            result, _ = engine(image_path)
             if result:
-                # result is a list of [bounding_box, text, confidence] tuples
                 lines = [item[1] for item in result if item and len(item) >= 2]
                 extracted = "\n".join(lines).strip()
                 if extracted:
                     img_name = Path(image_path).name
-                    md_blocks = [f"# Image: {img_name}\n"]
-                    md_blocks.append("## Extracted Text\n")
-                    md_blocks.append(extracted)
-                    return "\n".join(md_blocks)
+                    return (
+                        f"# Image: {img_name}\n\n"
+                        f"## Extracted Text\n\n"
+                        f"{extracted}\n"
+                    )
         except Exception:
-            pass  # fall through to Pillow metadata fallback
+            pass  # fall through to Pillow metadata
 
-    # Pillow fallback: at least report image dimensions / mode
+    # Pillow fallback: report dimensions / format at minimum
     if PILLOW_AVAILABLE:
         try:
             with PILImage.open(image_path) as img:
@@ -88,8 +107,7 @@ def ocr_image(image_path: str) -> str:
                     f"**Format:** {fmt}  \n"
                     f"**Dimensions:** {width} × {height} px  \n"
                     f"**Color mode:** {mode}  \n\n"
-                    f"> No text could be extracted from this image. "
-                    f"Install `rapidocr-onnxruntime` on the backend for OCR support.\n"
+                    f"> No text was extracted from this image.\n"
                 )
         except Exception:
             pass
@@ -121,7 +139,7 @@ async def convert_file(file: UploadFile = File(...)):
     suffix = Path(original_name).suffix.lower() or ".tmp"
     stem = Path(original_name).stem
 
-    # Write uploaded file to a temp location
+    # Write uploaded bytes to a temp file preserving the extension
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         content = await file.read()
         if not content:
@@ -133,20 +151,19 @@ async def convert_file(file: UploadFile = File(...)):
         is_image = suffix in IMAGE_EXTENSIONS
         text = ""
 
-        # ── Step 1: Try MarkItDown first (works for all non-image types) ──────
+        # Step 1: Try MarkItDown (handles all non-image types well)
         try:
             result = md_converter.convert(tmp_path)
             text = (result.text_content or "").strip()
         except Exception as e:
             if not is_image:
-                # For non-images, a MarkItDown failure is a real error
                 raise HTTPException(
                     status_code=500,
                     detail=f"Conversion failed for '{original_name}': {str(e)}"
                 )
-            # For images, MarkItDown often returns empty — we'll fall through to OCR
+            # For images, MarkItDown often returns empty without an LLM client — fall through
 
-        # ── Step 2: For images, if MarkItDown returned nothing, run OCR ───────
+        # Step 2: For images with no text, run OCR
         if is_image and not text:
             text = ocr_image(tmp_path)
 
