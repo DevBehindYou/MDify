@@ -2,99 +2,90 @@
 
 import Link from 'next/link';
 
-// ─── Use Case Data ────────────────────────────────────────────────────────────
+// ─── Data ─────────────────────────────────────────────────────────────────────
 
 const USE_CASES = [
   {
     icon: '🤖',
-    title: 'AI & LLM Pipelines',
+    title: 'AI and LLM Pipelines',
     color: '#F59E0B',
-    description:
-      'Feed documents to GPT, Claude, Gemini or any LLM without preprocessing. Markdown is the cleanest, most token-efficient format for AI ingestion — no HTML noise, no binary blobs.',
-    tags: ['RAG pipelines', 'Context windows', 'LLM fine-tuning'],
+    body: 'You have 40 PDFs, a messy Confluence export, and a deadline to stuff it all into a RAG pipeline. Markdown strips out the noise. No HTML tags. No binary encoding. Clean text your model can chew through in one pass.',
+    tags: ['RAG ingestion', 'Context windows', 'Fine-tuning prep'],
   },
   {
     icon: '👩‍💻',
-    title: 'Developers & Engineers',
+    title: 'Developers and Engineers',
     color: '#60A5FA',
-    description:
-      'Convert internal docs, specs, API references, and wiki exports to Markdown. Version-control your documentation in Git as clean `.md` files alongside your code.',
-    tags: ['Docs as code', 'Git-friendly', 'Wiki export'],
+    body: 'Specs in Word. Runbooks in PDF. Wiki exports as zipped HTML. You convert once, commit as .md, and your docs live next to the code. Git diffs work. Search works. The whole team stops asking "where is the latest version?"',
+    tags: ['Docs as code', 'Git-native', 'Wiki migration'],
   },
   {
     icon: '🔬',
-    title: 'Researchers & Academics',
+    title: 'Researchers and Academics',
     color: '#A78BFA',
-    description:
-      'Transform PDFs, research papers, and spreadsheets into readable, searchable Markdown. Extract and preserve structure from complex academic documents.',
-    tags: ['PDF extraction', 'Research papers', 'Data tables'],
+    body: 'Research papers locked in PDF lose their tables, headers, and citations when you copy-paste. MDify keeps the structure intact. Headings stay headings. Tables stay tables. You get a file Obsidian and Notion can import without cleanup.',
+    tags: ['Paper extraction', 'Obsidian ready', 'Table preservation'],
   },
   {
     icon: '✍️',
-    title: 'Content Teams & Writers',
+    title: 'Content Teams and Writers',
     color: '#34D399',
-    description:
-      'Convert Word docs, PowerPoints, and HTML pages into Markdown for CMS platforms like Notion, Obsidian, Ghost, or Jekyll. Eliminate manual copy-pasting.',
-    tags: ['CMS migration', 'Notion import', 'Blog publishing'],
+    body: 'Your client sent a 22-slide deck and a Word doc. You need both in Markdown for the CMS by end of day. Upload, convert, paste into Ghost or Jekyll. The formatting transfers. No manual reformatting. Ten minutes saved per document, minimum.',
+    tags: ['CMS migration', 'Blog publishing', 'Notion import'],
   },
   {
     icon: '📊',
-    title: 'Data & Analytics Teams',
+    title: 'Data and Analytics Teams',
     color: '#F97316',
-    description:
-      'Turn Excel spreadsheets and CSV files into Markdown tables instantly. Perfect for embedding data summaries into reports, wikis, and documentation.',
-    tags: ['Excel → table', 'CSV conversion', 'Data reports'],
+    body: 'Excel files don\'t render in pull requests. Markdown tables do. Drop a spreadsheet into MDify and you get a clean pipe-delimited table you can paste into a README, a wiki page, or a Slack thread.',
+    tags: ['Spreadsheet tables', 'CSV formatting', 'Report embeds'],
   },
   {
     icon: '🏢',
-    title: 'Enterprise & Operations',
+    title: 'Enterprise Operations',
     color: '#2DD4BF',
-    description:
-      'Digitise legacy documents, contracts, and policy files by converting them to Markdown. Build searchable, structured knowledge bases from existing file archives.',
-    tags: ['Knowledge base', 'Policy docs', 'Legacy migration'],
+    body: 'Legacy contracts. HR policy PDFs from 2018. Compliance docs nobody wants to open. Convert the archive to Markdown and suddenly you have a searchable knowledge base. Full-text search across every file you forgot existed.',
+    tags: ['Knowledge base', 'Compliance docs', 'Archive migration'],
   },
 ];
 
 const FILE_TYPES = [
-  { ext: 'PDF',  color: '#F43F5E', desc: 'Full text extraction' },
+  { ext: 'PDF',  color: '#F43F5E', desc: 'Text extraction' },
   { ext: 'DOCX', color: '#3B82F6', desc: 'Word documents' },
-  { ext: 'PPTX', color: '#F97316', desc: 'PowerPoint slides' },
-  { ext: 'XLSX', color: '#22C55E', desc: 'Excel spreadsheets' },
+  { ext: 'PPTX', color: '#F97316', desc: 'Slide decks' },
+  { ext: 'XLSX', color: '#22C55E', desc: 'Spreadsheets' },
   { ext: 'HTML', color: '#A78BFA', desc: 'Web pages' },
   { ext: 'TXT',  color: '#94A3B8', desc: 'Plain text' },
-  { ext: 'CSV',  color: '#2DD4BF', desc: 'Comma-separated data' },
+  { ext: 'CSV',  color: '#2DD4BF', desc: 'Data tables' },
   { ext: 'JSON', color: '#FBBF24', desc: 'Structured data' },
-  { ext: 'XML',  color: '#FB923C', desc: 'Markup data' },
-  { ext: 'EPUB', color: '#C084FC', desc: 'E-book format' },
-  { ext: 'MP3',  color: '#4ADE80', desc: 'Audio transcription' },
-  { ext: 'PNG',  color: '#60A5FA', desc: 'Image OCR' },
+  { ext: 'XML',  color: '#FB923C', desc: 'Markup files' },
+  { ext: 'EPUB', color: '#C084FC', desc: 'E-books' },
+  { ext: 'JPG',  color: '#60A5FA', desc: 'Image metadata' },
+  { ext: 'PNG',  color: '#38BDF8', desc: 'Image metadata' },
 ];
 
-const HOW_IT_WORKS = [
+const STEPS = [
   {
-    step: '01',
-    title: 'Upload your file',
-    description:
-      'Drag and drop any supported document directly onto the converter. Up to 10 files at a time — mix different formats freely.',
+    num: '01',
+    title: 'Drop your files',
+    body: 'Drag up to 10 documents onto the converter. Mix formats freely. A PDF, two spreadsheets, and a slide deck in one batch? Works fine.',
     color: '#F59E0B',
   },
   {
-    step: '02',
-    title: 'One-click conversion',
-    description:
-      'Hit "Convert" and MDify sends your file to the FastAPI backend powered by Microsoft\'s MarkItDown library. Conversion happens server-side in milliseconds.',
+    num: '02',
+    title: 'Hit Convert',
+    body: 'One click. MDify sends each file to a FastAPI backend running Microsoft\'s MarkItDown library. Conversion finishes in seconds, not minutes.',
     color: '#60A5FA',
   },
   {
-    step: '03',
-    title: 'Download clean Markdown',
-    description:
-      'Preview the syntax-highlighted output inline, copy to clipboard, or download the `.md` file — named to match your original document.',
+    num: '03',
+    title: 'Preview, copy, or download',
+    body: 'Syntax-highlighted Markdown appears inline. Copy it to your clipboard with one click, or download the .md file. Filenames match your originals.',
     color: '#34D399',
   },
 ];
 
-// ─── Page Component ───────────────────────────────────────────────────────────
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function UseCasePage() {
   return (
@@ -131,7 +122,7 @@ export default function UseCasePage() {
           </a>
           <Link
             href="/"
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg text-black transition-all"
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg text-black transition-all hover:scale-105"
             style={{
               background: 'linear-gradient(135deg, #F59E0B, #D97706)',
               boxShadow: '0 0 12px rgba(245,158,11,0.2)',
@@ -144,7 +135,6 @@ export default function UseCasePage() {
 
       {/* ── Hero ── */}
       <section className="flex flex-col items-center text-center px-6 pt-20 pb-16 gap-6">
-        {/* Badge */}
         <div
           className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium"
           style={{
@@ -154,15 +144,14 @@ export default function UseCasePage() {
           }}
         >
           <span>✦</span>
-          <span>Powered by Microsoft MarkItDown</span>
+          <span>Built on Microsoft MarkItDown</span>
         </div>
 
-        {/* Headline */}
         <h1
           className="text-4xl md:text-6xl font-bold tracking-tight max-w-3xl leading-tight"
           style={{ letterSpacing: '-0.02em' }}
         >
-          Why use{' '}
+          Your files are stuck in{' '}
           <span
             style={{
               background: 'linear-gradient(135deg, #F59E0B, #D97706)',
@@ -171,18 +160,22 @@ export default function UseCasePage() {
               backgroundClip: 'text',
             }}
           >
-            MDify
+            the wrong format
           </span>
-          ?
         </h1>
 
-        <p className="text-base md:text-lg text-zinc-400 max-w-xl leading-relaxed">
-          Any document. Any format. Clean, structured Markdown — ready for AI, code, or publishing.
-          No sign-up. No watermarks. No limits on what you convert.
-        </p>
+        <div className="max-w-xl space-y-3">
+          <p className="text-base md:text-lg text-zinc-400 leading-relaxed">
+            Every team has that folder. Fifty PDFs, a dozen Word docs, a few rogue PowerPoints.
+            You need them in Markdown, and you need them there yesterday.
+          </p>
+          <p className="text-sm text-zinc-500 leading-relaxed">
+            MDify converts 12+ file formats to clean <code className="text-amber-500/80 text-xs bg-amber-500/5 px-1.5 py-0.5 rounded">.md</code> files
+            in seconds. No account. No watermark. No upload limits on the free tier.
+          </p>
+        </div>
 
-        {/* CTA pair */}
-        <div className="flex items-center gap-3 flex-wrap justify-center">
+        <div className="flex items-center gap-3 flex-wrap justify-center mt-2">
           <Link
             href="/"
             className="px-5 py-2.5 rounded-xl text-sm font-semibold text-black transition-all hover:scale-105"
@@ -191,32 +184,28 @@ export default function UseCasePage() {
               boxShadow: '0 0 24px rgba(245,158,11,0.3)',
             }}
           >
-            Start Converting →
+            Open the Converter →
           </Link>
           <a
-            href="https://github.com/DevBehindYou"
+            href="https://github.com/DevBehindYou/MDify"
             target="_blank"
             rel="noopener noreferrer"
             className="px-5 py-2.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-all hover:scale-105"
             style={{ background: '#111114', border: '1px solid #1F1F24' }}
           >
-            GitHub
+            View Source
           </a>
         </div>
 
-        {/* Quick stats */}
         <div className="flex items-center gap-6 md:gap-10 flex-wrap justify-center mt-2">
           {[
-            { value: '12+', label: 'File Formats' },
-            { value: '10', label: 'Files at Once' },
-            { value: '0', label: 'Sign-up Required' },
+            { value: '12+', label: 'Formats' },
+            { value: '10', label: 'Files per Batch' },
+            { value: '$0', label: 'Price Tag' },
             { value: '100%', label: 'Open Source' },
           ].map((stat) => (
             <div key={stat.label} className="flex flex-col items-center gap-0.5">
-              <span
-                className="text-2xl font-bold"
-                style={{ color: '#F59E0B' }}
-              >
+              <span className="text-2xl font-bold" style={{ color: '#F59E0B' }}>
                 {stat.value}
               </span>
               <span className="text-[11px] text-zinc-600 uppercase tracking-widest">{stat.label}</span>
@@ -225,16 +214,16 @@ export default function UseCasePage() {
         </div>
       </section>
 
-      {/* ── Divider ── */}
       <div style={{ borderTop: '1px solid #1A1A1F' }} className="mx-6" />
 
-      {/* ── Use Cases Grid ── */}
+      {/* ── Who it's for ── */}
       <section className="px-6 py-16 max-w-6xl mx-auto w-full">
         <div className="flex flex-col gap-3 mb-10">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Use Cases</p>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Who is MDify for?</h2>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Who it's for</p>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Six teams. One tool.</h2>
           <p className="text-sm text-zinc-500 max-w-lg">
-            MDify is a universal document bridge — wherever you need clean, structured text, it works.
+            MDify solves the same problem everywhere: you have documents in one format and you need them in Markdown.
+            The specifics change. The conversion doesn't.
           </p>
         </div>
 
@@ -257,7 +246,6 @@ export default function UseCasePage() {
                 e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
               }}
             >
-              {/* Icon + title */}
               <div className="flex items-start gap-3">
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-none"
@@ -265,15 +253,11 @@ export default function UseCasePage() {
                 >
                   {uc.icon}
                 </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-zinc-100">{uc.title}</h3>
-                </div>
+                <h3 className="text-sm font-semibold text-zinc-100 mt-2">{uc.title}</h3>
               </div>
 
-              {/* Description */}
-              <p className="text-xs text-zinc-500 leading-relaxed">{uc.description}</p>
+              <p className="text-xs text-zinc-500 leading-relaxed">{uc.body}</p>
 
-              {/* Tags */}
               <div className="flex flex-wrap gap-1.5 mt-auto">
                 {uc.tags.map((tag) => (
                   <span
@@ -290,16 +274,16 @@ export default function UseCasePage() {
         </div>
       </section>
 
-      {/* ── Divider ── */}
       <div style={{ borderTop: '1px solid #1A1A1F' }} className="mx-6" />
 
-      {/* ── Supported File Types ── */}
+      {/* ── Supported Formats ── */}
       <section className="px-6 py-16 max-w-6xl mx-auto w-full">
         <div className="flex flex-col gap-3 mb-10">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Compatibility</p>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Supported File Types</h2>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">12 formats, one output</h2>
           <p className="text-sm text-zinc-500 max-w-lg">
-            MDify handles the most common document, data, and media formats — all converted to clean Markdown in one click.
+            Drag a PDF in. Drag an Excel file in right after. MDify handles the conversion the same way
+            regardless of what you feed it. The output is always clean, structured Markdown.
           </p>
         </div>
 
@@ -308,10 +292,7 @@ export default function UseCasePage() {
             <div
               key={ft.ext}
               className="flex flex-col items-center gap-2 p-4 rounded-xl text-center transition-all duration-200 hover:translate-y-[-2px]"
-              style={{
-                background: '#111114',
-                border: '1px solid #1F1F24',
-              }}
+              style={{ background: '#111114', border: '1px solid #1F1F24' }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = `${ft.color}30`;
                 e.currentTarget.style.background = `${ft.color}08`;
@@ -333,75 +314,63 @@ export default function UseCasePage() {
         </div>
       </section>
 
-      {/* ── Divider ── */}
       <div style={{ borderTop: '1px solid #1A1A1F' }} className="mx-6" />
 
-      {/* ── How It Works ── */}
+      {/* ── How it works ── */}
       <section className="px-6 py-16 max-w-6xl mx-auto w-full">
         <div className="flex flex-col gap-3 mb-10">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Workflow</p>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">How it works</h2>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Three steps. No friction.</h2>
           <p className="text-sm text-zinc-500 max-w-lg">
-            Three steps from any document to structured Markdown — no account, no config, no complexity.
+            No account creation screen. No API key form. No pricing table to scroll past.
+            You open the page and start converting.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {HOW_IT_WORKS.map((step, i) => (
-            <div key={step.step} className="relative flex flex-col gap-4">
-              {/* Connector line (desktop) */}
-              {i < HOW_IT_WORKS.length - 1 && (
+          {STEPS.map((step, i) => (
+            <div key={step.num} className="relative flex flex-col gap-4">
+              {i < STEPS.length - 1 && (
                 <div
                   className="hidden md:block absolute top-8 left-[calc(100%+0.5rem)] w-4 h-px"
                   style={{ background: '#1F1F24' }}
                 />
               )}
-
               <div
-                className="flex flex-col gap-4 p-5 rounded-xl"
+                className="flex flex-col gap-4 p-5 rounded-xl h-full"
                 style={{
                   background: '#111114',
                   border: `1px solid ${step.color}20`,
                   boxShadow: `0 0 0 1px ${step.color}08`,
                 }}
               >
-                {/* Step number */}
                 <div className="flex items-center gap-3">
                   <span
                     className="text-xs font-black"
                     style={{ color: step.color, fontFamily: 'JetBrains Mono, monospace' }}
                   >
-                    {step.step}
+                    {step.num}
                   </span>
-                  <div
-                    className="flex-1 h-px"
-                    style={{ background: `${step.color}20` }}
-                  />
+                  <div className="flex-1 h-px" style={{ background: `${step.color}20` }} />
                 </div>
-
-                {/* Title */}
                 <h3 className="text-sm font-semibold text-zinc-100">{step.title}</h3>
-
-                {/* Description */}
-                <p className="text-xs text-zinc-500 leading-relaxed">{step.description}</p>
+                <p className="text-xs text-zinc-500 leading-relaxed">{step.body}</p>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── Divider ── */}
       <div style={{ borderTop: '1px solid #1A1A1F' }} className="mx-6" />
 
-      {/* ── Architecture callout ── */}
+      {/* ── Under the hood ── */}
       <section className="px-6 py-16 max-w-6xl mx-auto w-full">
         <div className="flex flex-col gap-3 mb-8">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Architecture</p>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Built on solid foundations</h2>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Under the hood</p>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Two services. Zero complexity for you.</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Frontend */}
           <div
             className="p-5 rounded-xl flex flex-col gap-3"
             style={{ background: '#111114', border: '1px solid #1F1F24' }}
@@ -416,7 +385,7 @@ export default function UseCasePage() {
               <h3 className="text-sm font-semibold text-zinc-100">Frontend</h3>
             </div>
             <div className="flex flex-wrap gap-2">
-              {['Next.js 14', 'React 18', 'Tailwind CSS', 'App Router'].map((tech) => (
+              {['Next.js 14', 'React 18', 'Tailwind CSS'].map((tech) => (
                 <span
                   key={tech}
                   className="text-[10px] font-medium px-2 py-0.5 rounded-md"
@@ -427,11 +396,11 @@ export default function UseCasePage() {
               ))}
             </div>
             <p className="text-xs text-zinc-600 leading-relaxed">
-              Single-page app with a two-panel layout. Drag-and-drop upload, real-time status, tabbed output viewer, and syntax-highlighted Markdown preview.
+              A single-page app with drag-and-drop upload, real-time conversion status, and a tabbed output
+              viewer with syntax highlighting. Dark theme by default because nobody asked for light mode.
             </p>
           </div>
 
-          {/* Backend */}
           <div
             className="p-5 rounded-xl flex flex-col gap-3"
             style={{ background: '#111114', border: '1px solid #1F1F24' }}
@@ -446,7 +415,7 @@ export default function UseCasePage() {
               <h3 className="text-sm font-semibold text-zinc-100">Backend</h3>
             </div>
             <div className="flex flex-wrap gap-2">
-              {['Python 3.11', 'FastAPI', 'MarkItDown', 'Uvicorn'].map((tech) => (
+              {['Python 3.11', 'FastAPI', 'MarkItDown'].map((tech) => (
                 <span
                   key={tech}
                   className="text-[10px] font-medium px-2 py-0.5 rounded-md"
@@ -457,15 +426,17 @@ export default function UseCasePage() {
               ))}
             </div>
             <p className="text-xs text-zinc-600 leading-relaxed">
-              FastAPI server wraps Microsoft's MarkItDown library. Handles multipart file uploads, writes to a temp file, converts, and streams clean Markdown back as JSON.
+              A FastAPI server wrapping Microsoft's MarkItDown library. Your file goes in as multipart form data,
+              gets written to a temp path, converted, and the Markdown comes back as JSON. The temp file is
+              deleted before the response finishes.
             </p>
           </div>
         </div>
       </section>
 
-      {/* ── Final CTA ── */}
+      {/* ── CTA ── */}
       <section
-        className="px-6 py-16 text-center flex flex-col items-center gap-6"
+        className="px-6 py-16 text-center flex flex-col items-center gap-5"
         style={{ background: 'rgba(245,158,11,0.03)', borderTop: '1px solid rgba(245,158,11,0.08)' }}
       >
         <img
@@ -474,9 +445,12 @@ export default function UseCasePage() {
           className="w-14 h-14 rounded-2xl object-cover"
           style={{ boxShadow: '0 0 40px rgba(0,0,0,0.6)' }}
         />
-        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Ready to convert?</h2>
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+          Your files won't convert themselves.
+        </h2>
         <p className="text-sm text-zinc-500 max-w-sm">
-          Drop any document and get clean Markdown in seconds. No account needed.
+          Drop a document in. See the Markdown come out the other side.
+          If you don't like it, you lost ten seconds.
         </p>
         <Link
           href="/"
@@ -486,7 +460,7 @@ export default function UseCasePage() {
             boxShadow: '0 0 32px rgba(245,158,11,0.35)',
           }}
         >
-          Open MDify Converter →
+          Open MDify →
         </Link>
       </section>
 
