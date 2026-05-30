@@ -346,12 +346,16 @@ export default function Home() {
     }
   }, []);
 
-  // ── Convert all pending
+  // ── Convert all pending — SEQUENTIAL to avoid backend OOM on free tier
   const convertAll = useCallback(async () => {
     const pending = files.filter((f) => f.status === 'pending');
     if (!pending.length) return;
     setConverting(true);
-    await Promise.allSettled(pending.map(convertOne));
+    for (const fileObj of pending) {
+      await convertOne(fileObj);
+      // Small delay between files to let the backend free memory
+      await new Promise((r) => setTimeout(r, 300));
+    }
     setConverting(false);
   }, [files, convertOne]);
 

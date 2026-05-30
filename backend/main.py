@@ -3,9 +3,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import tempfile
 import os
+import gc
 from pathlib import Path
 
 app = FastAPI(title="MarkItDown API", version="1.0.0")
+
+# ── Config ────────────────────────────────────────────────────────────────────
+MAX_FILE_SIZE = 25 * 1024 * 1024  # 25 MB per file — keeps RAM usage safe on free tier
 
 # CORS: read allowed origins from env so the Render frontend URL is accepted in prod.
 _raw = os.getenv("FRONTEND_URL", "")
@@ -34,9 +38,9 @@ except ImportError:
     MARKITDOWN_AVAILABLE = False
 
 # ── Lazy OCR globals (initialised on first image request, not at startup) ─────
-_ocr_engine = None          # RapidOCR instance, created on demand
-_ocr_checked = False        # True once we've tried to import RapidOCR
-RAPIDOCR_AVAILABLE = False  # Updated after first attempt
+_ocr_engine = None
+_ocr_checked = False
+RAPIDOCR_AVAILABLE = False
 
 # ── Pillow (lightweight — safe to import at startup) ─────────────────────────
 try:
@@ -52,12 +56,11 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".tif", ".
 def _get_ocr_engine():
     """
     Lazily import and initialise RapidOCR on the first image request.
-    This avoids loading PyTorch/ONNX models at startup, preventing OOM crashes
-    on Render's 512 MB free tier.
+    This avoids loading ONNX models at startup, preventing OOM on 512 MB.
     """
     global _ocr_engine, _ocr_checked, RAPIDOCR_AVAILABLE
     if _ocr_checked:
-        return _ocr_engine  # already tried (may be None if unavailable)
+        return _ocr_engine
 
     _ocr_checked = True
     try:
@@ -71,6 +74,29 @@ def _get_ocr_engine():
     return _ocr_engine
 
 
+def _resize_for_ocr(image_path: str, max_dim: int = 2000) -> str:
+    """
+    If an image exceeds max_dim in any dimension, resize it to keep memory
+    usage low during OCR. Returns the (possibly new) path.
+    """
+    if not PILLOW_AVAILABLE:
+        return image_path
+    try:
+        with PILImage.open(image_path) as img:
+            w, h = img.size
+            if w <= max_dim and h <= max_dim:
+                return image_path  # small enough already
+            # Scale down proportionally
+            ratio = min(max_dim / w, max_dim / h)
+            new_size = (int(w * ratio), int(h * ratio))
+            resized = img.resize(new_size, PILImage.LANCZOS)
+            resized_path = image_path + ".resized.png"
+            resized.save(resized_path, format="PNG")
+            return resized_path
+    except Exception:
+        return image_path
+
+
 def ocr_image(image_path: str) -> str:
     """
     Run RapidOCR on an image and return extracted text as Markdown.
@@ -79,8 +105,9 @@ def ocr_image(image_path: str) -> str:
     engine = _get_ocr_engine()
 
     if engine is not None:
+        resized_path = _resize_for_ocr(image_path)
         try:
-            result, _ = engine(image_path)
+            result, _ = engine(resized_path)
             if result:
                 lines = [item[1] for item in result if item and len(item) >= 2]
                 extracted = "\n".join(lines).strip()
@@ -93,6 +120,13 @@ def ocr_image(image_path: str) -> str:
                     )
         except Exception:
             pass  # fall through to Pillow metadata
+        finally:
+            # Clean up resized temp file
+            if resized_path != image_path:
+                try:
+                    os.unlink(resized_path)
+                except Exception:
+                    pass
 
     # Pillow fallback: report dimensions / format at minimum
     if PILLOW_AVAILABLE:
@@ -139,13 +173,24 @@ async def convert_file(file: UploadFile = File(...)):
     suffix = Path(original_name).suffix.lower() or ".tmp"
     stem = Path(original_name).stem
 
-    # Write uploaded bytes to a temp file preserving the extension
+    # Read uploaded bytes and enforce size limit
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large ({len(content) // (1024*1024)} MB). Maximum is {MAX_FILE_SIZE // (1024*1024)} MB."
+        )
+
+    # Write to a temp file preserving the extension
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        content = await file.read()
-        if not content:
-            raise HTTPException(status_code=400, detail="Uploaded file is empty")
         tmp.write(content)
         tmp_path = tmp.name
+
+    # Release the upload buffer immediately
+    del content
+    gc.collect()
 
     try:
         is_image = suffix in IMAGE_EXTENSIONS
@@ -183,7 +228,9 @@ async def convert_file(file: UploadFile = File(...)):
             detail=f"Conversion failed for '{original_name}': {str(e)}"
         )
     finally:
+        # Clean up temp file and free memory
         try:
             os.unlink(tmp_path)
         except Exception:
             pass
+        gc.collect()
