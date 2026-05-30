@@ -203,26 +203,68 @@ export default function Home() {
   const [serverStatus, setServerStatus] = useState('checking');
   const [copied, setCopied]             = useState(false);
   const [logoHover, setLogoHover]       = useState(false);
+  const [wakeCountdown, setWakeCountdown] = useState(null); // null = not counting
 
-  const fileInputRef   = useRef(null);
-  const convertingIds  = useRef(new Set());
+  const fileInputRef    = useRef(null);
+  const convertingIds   = useRef(new Set());
   const outputScrollRef = useRef(null);
+  const countdownRef    = useRef(null); // holds the 1-s tick interval
+  const pollRef         = useRef(null); // holds the 5-s poll interval
 
-  // ── Server health check
+  // ── Start / stop the visible 60-s countdown
+  const startCountdown = useCallback(() => {
+    if (countdownRef.current) return; // already running
+    setWakeCountdown(60);
+    countdownRef.current = setInterval(() => {
+      setWakeCountdown((n) => {
+        if (n <= 1) {
+          clearInterval(countdownRef.current);
+          countdownRef.current = null;
+          return 0;
+        }
+        return n - 1;
+      });
+    }, 1000);
+  }, []);
+
+  const stopCountdown = useCallback(() => {
+    clearInterval(countdownRef.current);
+    countdownRef.current = null;
+    setWakeCountdown(null);
+  }, []);
+
+  // ── Server health check — polls every 5 s, wakes backend immediately
   useEffect(() => {
     const check = async () => {
       try {
         const res = await fetch('/api/health', {
-          signal: AbortSignal.timeout(4000),
+          signal: AbortSignal.timeout(8000),
         });
-        setServerStatus(res.ok ? 'online' : 'offline');
+        if (res.ok) {
+          setServerStatus('online');
+          stopCountdown();
+        } else {
+          setServerStatus('offline');
+          startCountdown();
+        }
       } catch {
         setServerStatus('offline');
+        startCountdown();
       }
     };
+
+    // Fire immediately on mount to trigger backend wake-up
     check();
-    const interval = setInterval(check, 15000);
-    return () => clearInterval(interval);
+    startCountdown(); // start countdown optimistically
+
+    // Poll every 5 s
+    pollRef.current = setInterval(check, 5000);
+
+    return () => {
+      clearInterval(pollRef.current);
+      clearInterval(countdownRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Add files (deduplicate by name)
@@ -462,23 +504,32 @@ export default function Home() {
           <button
             onClick={async () => {
               setServerStatus('checking');
+              stopCountdown();
+              startCountdown();
               try {
-                const res = await fetch('/api/health', { signal: AbortSignal.timeout(4000) });
-                setServerStatus(res.ok ? 'online' : 'offline');
+                const res = await fetch('/api/health', { signal: AbortSignal.timeout(8000) });
+                if (res.ok) { setServerStatus('online'); stopCountdown(); }
+                else { setServerStatus('offline'); }
               } catch { setServerStatus('offline'); }
             }}
             className="flex items-center gap-1.5 text-[11px] hover:opacity-80 transition-opacity hidden sm:flex"
-            title="Click to refresh backend status"
+            title="Click to retry backend connection"
           >
             <span className={`w-1.5 h-1.5 rounded-full flex-none ${
-              serverStatus === 'online'   ? 'bg-emerald-500' :
-              serverStatus === 'offline'  ? 'bg-red-500' :
-              'bg-amber-400 animate-pulse-slow'
+              serverStatus === 'online'
+                ? 'bg-emerald-500'
+                : wakeCountdown !== null
+                ? 'bg-amber-400 animate-pulse-slow'
+                : 'bg-red-500'
             }`} />
             <span className="text-zinc-500">
-              {serverStatus === 'online'  ? 'Backend ready' :
-               serverStatus === 'offline' ? 'Backend offline' :
-               'Connecting…'}
+              {serverStatus === 'online'
+                ? 'Backend ready'
+                : wakeCountdown !== null && wakeCountdown > 0
+                ? `Waking up… ${wakeCountdown}s`
+                : wakeCountdown === 0
+                ? 'Backend offline'
+                : 'Connecting…'}
             </span>
           </button>
 
