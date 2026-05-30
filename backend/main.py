@@ -9,9 +9,9 @@ from pathlib import Path
 app = FastAPI(title="MarkItDown API", version="1.0.0")
 
 # ── Config ────────────────────────────────────────────────────────────────────
-MAX_FILE_SIZE = 25 * 1024 * 1024  # 25 MB per file — keeps RAM usage safe on free tier
+MAX_FILE_SIZE = 25 * 1024 * 1024  # 25 MB per file
 
-# CORS: read allowed origins from env so the Render frontend URL is accepted in prod.
+# CORS
 _raw = os.getenv("FRONTEND_URL", "")
 _extra = [u.strip() for u in _raw.split(",") if u.strip()]
 ALLOWED_ORIGINS = [
@@ -37,116 +37,58 @@ except ImportError:
     md_converter = None
     MARKITDOWN_AVAILABLE = False
 
-# ── Lazy OCR globals (initialised on first image request, not at startup) ─────
-_ocr_engine = None
-_ocr_checked = False
-RAPIDOCR_AVAILABLE = False
-
-# ── Pillow (lightweight — safe to import at startup) ─────────────────────────
+# ── Pillow (lightweight — for image metadata fallback) ───────────────────────
 try:
     from PIL import Image as PILImage
     PILLOW_AVAILABLE = True
 except ImportError:
     PILLOW_AVAILABLE = False
 
-# Image extensions that should go through the OCR pipeline
+# Image extensions
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".tif", ".webp"}
 
 
-def _get_ocr_engine():
+def image_metadata(image_path: str) -> str:
     """
-    Lazily import and initialise RapidOCR on the first image request.
-    This avoids loading ONNX models at startup, preventing OOM on 512 MB.
-    """
-    global _ocr_engine, _ocr_checked, RAPIDOCR_AVAILABLE
-    if _ocr_checked:
-        return _ocr_engine
-
-    _ocr_checked = True
-    try:
-        from rapidocr_onnxruntime import RapidOCR
-        _ocr_engine = RapidOCR()
-        RAPIDOCR_AVAILABLE = True
-    except Exception:
-        _ocr_engine = None
-        RAPIDOCR_AVAILABLE = False
-
-    return _ocr_engine
-
-
-def _resize_for_ocr(image_path: str, max_dim: int = 2000) -> str:
-    """
-    If an image exceeds max_dim in any dimension, resize it to keep memory
-    usage low during OCR. Returns the (possibly new) path.
+    Extract image metadata using Pillow and return it as Markdown.
+    This is a lightweight fallback that works within the 512 MB free tier.
     """
     if not PILLOW_AVAILABLE:
-        return image_path
+        return ""
+
     try:
         with PILImage.open(image_path) as img:
-            w, h = img.size
-            if w <= max_dim and h <= max_dim:
-                return image_path  # small enough already
-            # Scale down proportionally
-            ratio = min(max_dim / w, max_dim / h)
-            new_size = (int(w * ratio), int(h * ratio))
-            resized = img.resize(new_size, PILImage.LANCZOS)
-            resized_path = image_path + ".resized.png"
-            resized.save(resized_path, format="PNG")
-            return resized_path
+            width, height = img.size
+            mode = img.mode
+            fmt = img.format or Path(image_path).suffix.lstrip(".").upper()
+            img_name = Path(image_path).name
+
+            info_lines = [
+                f"# Image: {img_name}\n",
+                f"| Property | Value |",
+                f"|----------|-------|",
+                f"| **Format** | {fmt} |",
+                f"| **Dimensions** | {width} × {height} px |",
+                f"| **Color mode** | {mode} |",
+            ]
+
+            # Extract EXIF / metadata if available
+            exif = img.info
+            if exif:
+                for key, val in exif.items():
+                    if isinstance(val, (str, int, float)) and key not in ("exif",):
+                        info_lines.append(f"| **{key}** | {val} |")
+
+            info_lines.append("")
+            info_lines.append(
+                "> **Note:** Image text extraction (OCR) is not available on the free tier. "
+                "The image metadata above is all that can be extracted."
+            )
+            info_lines.append("")
+
+            return "\n".join(info_lines)
     except Exception:
-        return image_path
-
-
-def ocr_image(image_path: str) -> str:
-    """
-    Run RapidOCR on an image and return extracted text as Markdown.
-    Falls back to Pillow metadata if OCR is unavailable.
-    """
-    engine = _get_ocr_engine()
-
-    if engine is not None:
-        resized_path = _resize_for_ocr(image_path)
-        try:
-            result, _ = engine(resized_path)
-            if result:
-                lines = [item[1] for item in result if item and len(item) >= 2]
-                extracted = "\n".join(lines).strip()
-                if extracted:
-                    img_name = Path(image_path).name
-                    return (
-                        f"# Image: {img_name}\n\n"
-                        f"## Extracted Text\n\n"
-                        f"{extracted}\n"
-                    )
-        except Exception:
-            pass  # fall through to Pillow metadata
-        finally:
-            # Clean up resized temp file
-            if resized_path != image_path:
-                try:
-                    os.unlink(resized_path)
-                except Exception:
-                    pass
-
-    # Pillow fallback: report dimensions / format at minimum
-    if PILLOW_AVAILABLE:
-        try:
-            with PILImage.open(image_path) as img:
-                width, height = img.size
-                mode = img.mode
-                fmt = img.format or Path(image_path).suffix.lstrip(".").upper()
-                img_name = Path(image_path).name
-                return (
-                    f"# Image: {img_name}\n\n"
-                    f"**Format:** {fmt}  \n"
-                    f"**Dimensions:** {width} × {height} px  \n"
-                    f"**Color mode:** {mode}  \n\n"
-                    f"> No text was extracted from this image.\n"
-                )
-        except Exception:
-            pass
-
-    return ""
+        return ""
 
 
 @app.get("/health")
@@ -154,7 +96,6 @@ async def health():
     return {
         "status": "ok",
         "markitdown": MARKITDOWN_AVAILABLE,
-        "ocr": RAPIDOCR_AVAILABLE,
     }
 
 
@@ -196,7 +137,7 @@ async def convert_file(file: UploadFile = File(...)):
         is_image = suffix in IMAGE_EXTENSIONS
         text = ""
 
-        # Step 1: Try MarkItDown (handles all non-image types well)
+        # Step 1: Try MarkItDown
         try:
             result = md_converter.convert(tmp_path)
             text = (result.text_content or "").strip()
@@ -206,11 +147,10 @@ async def convert_file(file: UploadFile = File(...)):
                     status_code=500,
                     detail=f"Conversion failed for '{original_name}': {str(e)}"
                 )
-            # For images, MarkItDown often returns empty without an LLM client — fall through
 
-        # Step 2: For images with no text, run OCR
+        # Step 2: For images with no text, provide metadata
         if is_image and not text:
-            text = ocr_image(tmp_path)
+            text = image_metadata(tmp_path)
 
         return JSONResponse({
             "filename": stem + ".md",
@@ -228,7 +168,6 @@ async def convert_file(file: UploadFile = File(...)):
             detail=f"Conversion failed for '{original_name}': {str(e)}"
         )
     finally:
-        # Clean up temp file and free memory
         try:
             os.unlink(tmp_path)
         except Exception:

@@ -1,8 +1,4 @@
-# Core conversion library
-# Using specific extras instead of [all] to reduce memory footprint (~500MB → ~150MB).
-# Dropped: onnxruntime (image description — we use RapidOCR instead),
-#          speechrecognition/pydub (audio — rarely used, very heavy),
-#          magika (content detection — heavy).
+# Core conversion library (individual extras, NOT [all] — saves ~350MB of RAM)
 markitdown>=0.1.0
 pdfminer.six
 pypdfium2
@@ -19,8 +15,5 @@ fastapi>=0.109.0
 uvicorn[standard]>=0.27.0
 python-multipart>=0.0.9
 
-# Image OCR — pure Python, ONNX Runtime backend, no system binaries required
-rapidocr-onnxruntime>=1.4.0
-
-# Image processing (resize before OCR + metadata fallback)
+# Image processing (metadata + basic text-in-image detection)
 Pillow>=10.0.0
