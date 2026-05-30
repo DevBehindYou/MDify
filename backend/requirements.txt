@@ -1,4 +1,14 @@
+# Core conversion library
 markitdown[all]>=0.1.0
+
+# API framework
 fastapi>=0.109.0
 uvicorn[standard]>=0.27.0
 python-multipart>=0.0.9
+
+# Image OCR — pure Python, ONNX Runtime backend, no system binaries required
+# Works on Render free tier without Docker.
+rapidocr-onnxruntime>=1.4.0
+
+# Image processing (metadata fallback + pre-processing for OCR)
+Pillow>=10.0.0
