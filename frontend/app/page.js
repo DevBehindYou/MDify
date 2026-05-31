@@ -211,10 +211,10 @@ export default function Home() {
   const countdownRef    = useRef(null); // holds the 1-s tick interval
   const pollRef         = useRef(null); // holds the 5-s poll interval
 
-  // ── Start / stop the visible 60-s countdown
+  // ── Start / stop the visible countdown (90 s covers Render worst-case wake)
   const startCountdown = useCallback(() => {
     if (countdownRef.current) return; // already running
-    setWakeCountdown(60);
+    setWakeCountdown(90);
     countdownRef.current = setInterval(() => {
       setWakeCountdown((n) => {
         if (n <= 1) {
@@ -233,28 +233,38 @@ export default function Home() {
     setWakeCountdown(null);
   }, []);
 
-  // ── Server health check — polls every 5 s, wakes backend on mount
+  // ── Server health check — direct wake-up + proxy polling
   useEffect(() => {
+    // 1) Direct wake-up ping: bypass Next.js proxy, hit the backend URL
+    //    directly from the browser. This reliably triggers Render's
+    //    cold-start even when the proxy drops timed-out connections.
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (backendUrl) {
+      fetch(`${backendUrl}/health`, {
+        mode: 'cors',
+        signal: AbortSignal.timeout(45000), // 45 s — plenty for cold start
+      }).catch(() => {}); // fire-and-forget, we don't use this response
+    }
+
+    // 2) Proxy-based polling for status display
     const check = async () => {
       try {
         const res = await fetch('/api/health', {
-          signal: AbortSignal.timeout(8000),
+          signal: AbortSignal.timeout(10000),
         });
         if (res.ok) {
           setServerStatus('online');
-          stopCountdown();          // clear countdown as soon as we're online
+          stopCountdown();
         } else {
           setServerStatus('offline');
-          startCountdown();         // only start counting if backend is NOT ok
+          startCountdown();
         }
       } catch {
         setServerStatus('offline');
-        startCountdown();           // only start counting on actual failure
+        startCountdown();
       }
     };
 
-    // Fire immediately on mount — this wakes the Render backend
-    // Do NOT start countdown here; wait for the actual check result.
     check();
 
     // Poll every 5 s
@@ -510,8 +520,11 @@ export default function Home() {
               setServerStatus('checking');
               stopCountdown();
               startCountdown();
+              // Direct wake-up ping (fire-and-forget)
+              const bUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+              if (bUrl) fetch(`${bUrl}/health`, { mode: 'cors', signal: AbortSignal.timeout(45000) }).catch(() => {});
               try {
-                const res = await fetch('/api/health', { signal: AbortSignal.timeout(8000) });
+                const res = await fetch('/api/health', { signal: AbortSignal.timeout(10000) });
                 if (res.ok) { setServerStatus('online'); stopCountdown(); }
                 else { setServerStatus('offline'); }
               } catch { setServerStatus('offline'); }

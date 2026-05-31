@@ -12,6 +12,13 @@
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
 const nextConfig = {
+  // Expose the backend URL to client-side code so the browser can send
+  // a direct wake-up ping to the backend (bypassing the Next.js proxy).
+  // This is what triggers Render's cold-start mechanism reliably.
+  env: {
+    NEXT_PUBLIC_BACKEND_URL: BACKEND_URL,
+  },
+
   // ── Reverse-proxy both backend endpoints through Next.js ──────────────────
   // Rewrites forward the ENTIRE request (method, headers, body) to the
   // destination. This supports multipart/form-data file uploads with no
