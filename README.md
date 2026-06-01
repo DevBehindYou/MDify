@@ -110,8 +110,8 @@ Open `http://localhost:3000`. Upload a file. Watch it convert.
 
 The app runs free on Render. First load takes 20-30 seconds while the backend wakes up. The frontend shows a countdown while it waits.
 
-**App:** https://mdify-app.onrender.com
-**Use Cases:** https://mdify-app.onrender.com/usecase
+**App:** [https://mdify-app.vercel.app](https://mdify-app.vercel.app/)
+**Use Cases:** [https://mdify-app.vercel.app/usecase](https://mdify-app.vercel.app/usecase)
 
 ---
 
