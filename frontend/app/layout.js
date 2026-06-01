@@ -1,4 +1,5 @@
 import './globals.css';
+import { Analytics } from '@vercel/analytics/next';
 
 const BASE_URL = 'https://mdify-app.onrender.com';
 
@@ -104,7 +105,10 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body className="h-full">{children}</body>
+      <body className="h-full">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
