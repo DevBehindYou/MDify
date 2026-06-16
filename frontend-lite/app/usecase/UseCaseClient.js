@@ -120,12 +120,12 @@ export default function UseCasePage() {
   return (
     <div
       className="min-h-screen flex flex-col"
-      style={{ background: '#F8FAFC', color: '#0F172A', fontFamily: 'Inter, sans-serif' }}
+      style={{ background: '#F7F2EA', color: '#0A0F1E', fontFamily: 'Inter, sans-serif' }}
     >
       {/* ── Nav ── */}
       <nav
         className="flex-none flex items-center justify-between px-6 py-4 border-b sticky top-0 z-50"
-        style={{ borderColor: '#E2E8F0', background: 'rgba(248,250,252,0.95)', backdropFilter: 'blur(12px)' }}
+        style={{ borderColor: '#E2E8F0', background: 'rgba(247,242,234,0.95)', backdropFilter: 'blur(12px)' }}
       >
         <Link href="/" className="flex items-center gap-2.5 group">
           <img
@@ -220,7 +220,7 @@ export default function UseCasePage() {
             target="_blank"
             rel="noopener noreferrer"
             className="px-5 py-2.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-all hover:scale-105"
-            style={{ background: '#FFFFFF', border: '1px solid #1F1F24' }}
+            style={{ background: '#FFFCF7', border: '1px solid #1F1F24' }}
           >
             MarkItDown on GitHub ↗
           </a>
@@ -235,7 +235,7 @@ export default function UseCasePage() {
               key={stat.label}
               className="flex flex-col items-center justify-center gap-1 py-6 px-4 rounded-xl text-center transition-all duration-200 hover:translate-y-[-2px]"
               style={{
-                background: '#FFFFFF',
+                background: '#FFFCF7',
                 border: `1px solid ${stat.color}20`,
                 boxShadow: `0 0 0 1px ${stat.color}08`,
               }}
@@ -273,7 +273,7 @@ export default function UseCasePage() {
               key={vp.title}
               className="flex flex-col gap-4 p-6 rounded-xl transition-all duration-200 hover:translate-y-[-2px]"
               style={{
-                background: '#FFFFFF',
+                background: '#FFFCF7',
                 border: `1px solid ${vp.color}20`,
                 boxShadow: `0 4px 16px rgba(0,0,0,0.3), 0 0 0 1px ${vp.color}08`,
               }}
@@ -360,7 +360,7 @@ export default function UseCasePage() {
               key={uc.title}
               className="flex flex-col gap-4 p-5 rounded-xl transition-all duration-200 hover:translate-y-[-2px]"
               style={{
-                background: '#FFFFFF',
+                background: '#FFFCF7',
                 border: '1px solid #1F1F24',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
               }}
@@ -419,14 +419,14 @@ export default function UseCasePage() {
             <div
               key={ft.ext}
               className="flex flex-col items-center gap-2 p-4 rounded-xl text-center transition-all duration-200 hover:translate-y-[-2px]"
-              style={{ background: '#FFFFFF', border: '1px solid #1F1F24' }}
+              style={{ background: '#FFFCF7', border: '1px solid #1F1F24' }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = `${ft.color}30`;
                 e.currentTarget.style.background = `${ft.color}08`;
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = '#E2E8F0';
-                e.currentTarget.style.background = '#FFFFFF';
+                e.currentTarget.style.background = '#FFFCF7';
               }}
             >
               <span
@@ -466,7 +466,7 @@ export default function UseCasePage() {
               <div
                 className="flex flex-col gap-4 p-5 rounded-xl h-full"
                 style={{
-                  background: '#FFFFFF',
+                  background: '#FFFCF7',
                   border: `1px solid ${step.color}20`,
                   boxShadow: `0 0 0 1px ${step.color}08`,
                 }}
@@ -500,7 +500,7 @@ export default function UseCasePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div
             className="p-5 rounded-xl flex flex-col gap-3"
-            style={{ background: '#FFFFFF', border: '1px solid #1F1F24' }}
+            style={{ background: '#FFFCF7', border: '1px solid #1F1F24' }}
           >
             <div className="flex items-center gap-2">
               <div
@@ -530,7 +530,7 @@ export default function UseCasePage() {
 
           <div
             className="p-5 rounded-xl flex flex-col gap-3"
-            style={{ background: '#FFFFFF', border: '1px solid #1F1F24' }}
+            style={{ background: '#FFFCF7', border: '1px solid #1F1F24' }}
           >
             <div className="flex items-center gap-2">
               <div
@@ -571,7 +571,7 @@ export default function UseCasePage() {
             <div
               key={spec.label}
               className="flex flex-col items-center gap-1 py-4 rounded-xl text-center"
-              style={{ background: '#FFFFFF', border: `1px solid ${spec.color}15` }}
+              style={{ background: '#FFFCF7', border: `1px solid ${spec.color}15` }}
             >
               <span className="text-xs font-bold" style={{ color: spec.color }}>{spec.value}</span>
               <span className="text-[10px] text-zinc-400 uppercase tracking-wider">{spec.label}</span>
@@ -613,7 +613,7 @@ export default function UseCasePage() {
       {/* ── Footer ── */}
       <footer
         className="flex items-center justify-between px-6 py-4 border-t flex-wrap gap-3"
-        style={{ borderColor: '#E2E8F0', background: '#F8FAFC' }}
+        style={{ borderColor: '#E2E8F0', background: '#F7F2EA' }}
       >
         <div className="flex items-center gap-3 text-[10px] text-zinc-300">
           <span>MDify</span>

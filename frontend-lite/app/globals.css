@@ -11,8 +11,8 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
-  background-color: #F8FAFC;
-  color: #0F172A;
+  background-color: #F7F2EA;
+  color: #0A0F1E;
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -29,12 +29,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: #C8C3BA;
   border-radius: 100px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: #A09B92;
 }
 
 /* Selection */

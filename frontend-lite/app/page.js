@@ -83,7 +83,7 @@ function FileRow({ fileObj, onConvert, onRemove, isActive }) {
       group flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all duration-150 animate-slide-up
       ${isActive
         ? 'bg-amber-500/5 border-amber-500/20'
-        : 'bg-white border-slate-200 hover:border-slate-300'
+        : 'bg-[#FFFCF7] border-slate-200 hover:border-slate-300'
       }
     `}>
       {/* File type stripe */}
@@ -429,7 +429,7 @@ export default function Home() {
   return (
     <div
       className="h-screen flex flex-col overflow-hidden"
-      style={{ background: '#F8FAFC', color: '#0F172A', fontFamily: 'Inter, sans-serif' }}
+      style={{ background: '#F7F2EA', color: '#0A0F1E', fontFamily: 'Inter, sans-serif' }}
     >
       {/* ── Header ── */}
       <header className="flex-none flex items-center justify-between px-5 py-3 border-b"
@@ -454,7 +454,7 @@ export default function Home() {
               <div
                 className="absolute top-full left-0 mt-2 z-50 rounded-xl p-4 flex flex-col gap-3 w-56"
                 style={{
-                  background: '#FFFFFF',
+                  background: '#FFFCF7',
                   border: '1px solid #2A2A30',
                   boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 0 0 1px rgba(245,158,11,0.08)',
                   animation: 'slideUp 0.15s ease-out forwards',
@@ -626,7 +626,7 @@ export default function Home() {
               <div className="flex flex-col items-center gap-2">
                 <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold mb-0.5"
-                  style={{ background: '#F1F5F9', border: '1px solid #2A2A30' }}
+                  style={{ background: '#EDE8DF', border: '1px solid #2A2A30' }}
                 >
                   ↑
                 </div>
@@ -679,7 +679,7 @@ export default function Home() {
                         background: 'linear-gradient(135deg, #F59E0B, #D97706)',
                         boxShadow: '0 0 20px rgba(245,158,11,0.2)',
                       }
-                    : { background: '#F1F5F9', border: '1px solid #1F1F24' }
+                    : { background: '#EDE8DF', border: '1px solid #1F1F24' }
                 }
               >
                 {hasAnyConverting
@@ -694,7 +694,7 @@ export default function Home() {
                 <button
                   onClick={downloadAll}
                   className="py-2.5 px-3 rounded-xl text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-colors"
-                  style={{ background: '#F1F5F9', border: '1px solid #1F1F24' }}
+                  style={{ background: '#EDE8DF', border: '1px solid #1F1F24' }}
                   title="Download all .md files"
                 >
                   ↓ All
@@ -762,7 +762,7 @@ export default function Home() {
                     style={
                       activeResult === i
                         ? { background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }
-                        : { background: '#FFFFFF', border: '1px solid #1F1F24' }
+                        : { background: '#FFFCF7', border: '1px solid #1F1F24' }
                     }
                   >
                     <span className="block truncate">{result.filename}</span>
@@ -780,7 +780,7 @@ export default function Home() {
                     <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                       <span
                         className="text-[10px] font-mono text-zinc-500 px-2 py-0.5 rounded-md truncate max-w-[140px] md:max-w-[260px]"
-                        style={{ background: '#F1F5F9', border: '1px solid #1F1F24' }}
+                        style={{ background: '#EDE8DF', border: '1px solid #1F1F24' }}
                         title={currentResult.filename}
                       >
                         {currentResult.filename}
@@ -798,7 +798,7 @@ export default function Home() {
                       <button
                         onClick={copyToClipboard}
                         className="text-[11px] px-2.5 py-1 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"
-                        style={{ background: '#F1F5F9', border: '1px solid #E2E8F0' }}
+                        style={{ background: '#EDE8DF', border: '1px solid #E2E8F0' }}
                       >
                         {copied ? '✓ Copied' : 'Copy'}
                       </button>
@@ -823,7 +823,7 @@ export default function Home() {
                     ref={outputScrollRef}
                     className="flex-1 overflow-y-auto rounded-xl min-h-0"
                     style={{
-                      background: '#FFFFFF',
+                      background: '#FFFCF7',
                       border: '1px solid #E2E8F0',
                     }}
                   >
@@ -831,7 +831,7 @@ export default function Home() {
                     <div
                       className="sticky top-0 z-10 flex items-center justify-between px-4 py-2"
                       style={{
-                        background: '#FFFFFF',
+                        background: '#FFFCF7',
                         borderBottom: '1px solid #E2E8F0',
                       }}
                     >
@@ -866,7 +866,7 @@ export default function Home() {
       {/* ── Footer status bar ── */}
       <div
         className="flex-none flex items-center justify-between px-5 py-2 border-t"
-        style={{ borderColor: '#E2E8F0', background: '#F8FAFC' }}
+        style={{ borderColor: '#E2E8F0', background: '#F7F2EA' }}
       >
         <div className="flex items-center gap-3 text-[10px] text-zinc-300">
           <span>MDify</span>
