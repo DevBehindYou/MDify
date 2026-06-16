@@ -24,8 +24,6 @@ const nextConfig = {
       },
     ];
   },
-  basePath: '/tool/mdify-convert-pdf-to-markdown',
-  // Keep any other existing configurations you have here...
 };
 
 module.exports = nextConfig;
