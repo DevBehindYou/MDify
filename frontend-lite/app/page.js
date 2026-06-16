@@ -51,16 +51,16 @@ const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 function StatusBadge({ status }) {
   const map = {
-    pending:    { dot: 'bg-zinc-600',                     text: 'Pending'     },
-    converting: { dot: 'bg-amber-400 animate-pulse-slow', text: 'Converting…' },
-    done:       { dot: 'bg-emerald-500',                  text: 'Done'        },
+    pending:    { dot: 'bg-zinc-400',                     text: 'Pending'     },
+    converting: { dot: 'bg-amber-500 animate-pulse-slow', text: 'Converting…' },
+    done:       { dot: 'bg-emerald-600',                  text: 'Done'        },
     error:      { dot: 'bg-red-500',                      text: 'Error'       },
   };
   const cfg = map[status] || map.pending;
   return (
     <span className="flex items-center gap-1.5">
       <span className={`w-1.5 h-1.5 rounded-full flex-none ${cfg.dot}`} />
-      <span className="text-[10px] text-zinc-500 font-medium">{cfg.text}</span>
+      <span className="text-[10px] text-zinc-700 font-medium">{cfg.text}</span>
     </span>
   );
 }
@@ -70,7 +70,7 @@ function FileTypePill({ filename }) {
   return (
     <span
       className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded"
-      style={{ color: meta.color, backgroundColor: `${meta.color}18` }}
+      style={{ color: meta.color, backgroundColor: `${meta.color}25` }}
     >
       {meta.label}
     </span>
@@ -94,17 +94,17 @@ function FileRow({ fileObj, onConvert, onRemove, isActive }) {
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-zinc-200 truncate leading-tight">
+        <p className="text-xs font-semibold text-zinc-900 truncate leading-tight">
           {fileObj.file.name}
         </p>
         <div className="flex items-center gap-2 mt-1">
           <FileTypePill filename={fileObj.file.name} />
           <StatusBadge status={fileObj.status} />
           {fileObj.status === 'pending' && (
-            <span className="text-[10px] text-zinc-400">{formatSize(fileObj.file.size)}</span>
+            <span className="text-[10px] text-zinc-600">{formatSize(fileObj.file.size)}</span>
           )}
           {fileObj.status === 'error' && fileObj.errorMsg && (
-            <span className="text-[10px] text-red-400 truncate max-w-[120px]" title={fileObj.errorMsg}>
+            <span className="text-[10px] text-red-600 truncate max-w-[120px]" title={fileObj.errorMsg}>
               {fileObj.errorMsg}
             </span>
           )}
@@ -123,7 +123,7 @@ function FileRow({ fileObj, onConvert, onRemove, isActive }) {
         )}
         <button
           onClick={() => onRemove(fileObj.id)}
-          className="w-6 h-6 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-400 hover:bg-zinc-100 transition-colors text-base leading-none"
+          className="w-6 h-6 flex items-center justify-center rounded-md text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 transition-colors text-base leading-none"
           title="Remove"
         >
           ×
