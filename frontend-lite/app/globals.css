@@ -2,9 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-*,
-*::before,
-*::after {
+* {
   box-sizing: border-box;
 }
 
@@ -13,54 +11,105 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
-  background-color: #08080a;
-  color: #ececf1;
+  background-color: #F8FAFC;
+  color: #0F172A;
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #2a2a2f; border-radius: 100px; }
-::-webkit-scrollbar-thumb:hover { background: #3a3a40; }
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
 
 /* Selection */
-::selection { background: rgba(245,158,11,0.2); color: #f59e0b; }
-
-/* Drop zone shimmer */
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position:  200% 0; }
+::selection {
+  background: rgba(245, 158, 11, 0.2);
+  color: #D97706;
 }
+
+/* Drag overlay shimmer */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
 .drop-shimmer {
   background: linear-gradient(
     90deg,
-    rgba(245,158,11,0) 0%,
-    rgba(245,158,11,0.06) 50%,
-    rgba(245,158,11,0) 100%
+    rgba(245, 158, 11, 0) 0%,
+    rgba(245, 158, 11, 0.06) 50%,
+    rgba(245, 158, 11, 0) 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
+  animation: shimmer 1.5s infinite;
 }
 
-/* Spin */
-@keyframes spin { to { transform: rotate(360deg); } }
-.spin { animation: spin 0.9s linear infinite; display: inline-block; }
+/* Spin for loading state */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
-/* Markdown output */
-.md-pre {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
+.spin {
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+/* Fade-in for list items */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.18s ease-out forwards;
+}
+
+/* Glow for accent elements */
+.accent-glow {
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
+}
+
+/* Code / markdown output styling — light theme */
+.markdown-pre {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11.5px;
   line-height: 1.7;
+  color: #374151;
   white-space: pre-wrap;
   word-break: break-word;
-  color: #b4b4c0;
 }
 
-/* Slide-up for result panel */
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+.markdown-pre .md-heading {
+  color: #D97706;
+  font-weight: 500;
 }
-.slide-up { animation: slideUp 0.22s ease-out forwards; }
+
+.markdown-pre .md-link {
+  color: #2563EB;
+}
+
+.markdown-pre .md-code {
+  color: #7C3AED;
+}
