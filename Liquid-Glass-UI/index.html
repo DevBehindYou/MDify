@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>MDify Pro — Liquid Glass</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================================
+   MDify Pro · Liquid Glass prototype
+   Real refraction via SVG feDisplacementMap (background bends at edges) — the
+   backdrop is displaced, NOT gaussian-blurred. Two themes:
+     dark  → white dots on #17181a
+     light → black dots on #fff9e9
+   ========================================================================== */
+
+/* ---- Theme tokens ---------------------------------------------------------- */
+:root {
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --accent: #F59E0B;
+  --radius: 24px;
+  --motion-spring: cubic-bezier(.22, 1, .36, 1);
+}
+
+/* Dark: white dots on near-black */
+:root[data-theme="dark"] {
+  --bg: #17181a;
+  --dot: rgba(255,255,255,.22);
+  --dot-size: 1.6px;
+  --text: #f5f5f7;
+  --muted: rgba(245,245,247,.66);
+  --faint: rgba(245,245,247,.42);
+  --sheen: rgba(255,255,255,.06);        /* fixed top-left scene reflection */
+
+  --glass-body: linear-gradient(180deg, rgba(255,255,255,.070), rgba(255,255,255,.022));
+  --glass-fill-strong: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.045));
+  --glass-border: rgba(255,255,255,.28);
+  --glass-border-hover: rgba(255,255,255,.46);
+  /* bezel = bright incident rim (TL) · dark exit edge (BR) · faint chromatic edges */
+  --bezel: inset 1.5px 2px 2px rgba(255,255,255,.60), inset -1.5px -2px 3px rgba(0,0,0,.34),
+           inset 0 8px 16px rgba(255,255,255,.04), inset 0 -8px 16px rgba(0,0,0,.18),
+           inset 2px 0 2px rgba(90,160,255,.05), inset -2px 0 2px rgba(255,100,165,.045);
+  --rim: linear-gradient(118deg, rgba(255,255,255,.92), rgba(255,255,255,.12) 24%,
+         rgba(185,214,255,.16) 38%, rgba(0,0,0,.22) 54%, rgba(255,218,230,.12) 69%, rgba(255,255,255,.60));
+  --shadow: 0 24px 70px rgba(0,0,0,.50), 0 6px 18px rgba(0,0,0,.34);
+  --shadow-hover: 0 30px 84px rgba(0,0,0,.58), 0 8px 24px rgba(0,0,0,.36);
+  --top-highlight: inset 0 1px 0 rgba(255,255,255,.56);
+  --reader-fill: rgba(255,255,255,.05);
+  --accent-ink: #0b0b0c;
+  --scrim: radial-gradient(circle at 50% -8%, rgba(255,255,255,.05), transparent 42%);
+}
+
+/* Light: black dots on warm cream */
+:root[data-theme="light"] {
+  --bg: #fff9e9;
+  --dot: rgba(20,20,22,.20);
+  --dot-size: 1.6px;
+  --text: #191a1c;
+  --muted: rgba(25,26,28,.62);
+  --faint: rgba(25,26,28,.42);
+  --sheen: rgba(255,255,255,.28);        /* fixed top-left scene reflection */
+
+  --glass-body: linear-gradient(180deg, rgba(255,255,255,.62), rgba(255,255,255,.30));
+  --glass-fill-strong: linear-gradient(180deg, rgba(255,255,255,.80), rgba(255,255,255,.52));
+  --glass-border: rgba(30,26,10,.20);
+  --glass-border-hover: rgba(30,26,10,.36);
+  --bezel: inset 1.5px 2px 2px rgba(255,255,255,.90), inset -1.5px -2px 3px rgba(120,100,40,.16),
+           inset 0 8px 16px rgba(255,255,255,.30), inset 0 -8px 16px rgba(90,74,20,.10),
+           inset 2px 0 2px rgba(70,130,255,.04), inset -2px 0 2px rgba(255,90,150,.035);
+  --rim: linear-gradient(118deg, rgba(255,255,255,.95), rgba(255,255,255,.10) 26%,
+         rgba(120,150,210,.20) 40%, rgba(60,45,10,.22) 55%, rgba(210,120,80,.16) 70%, rgba(255,255,255,.70));
+  --shadow: 0 22px 60px rgba(80,66,20,.20), 0 6px 16px rgba(80,66,20,.14);
+  --shadow-hover: 0 28px 74px rgba(80,66,20,.26), 0 8px 22px rgba(80,66,20,.18);
+  --top-highlight: inset 0 1px 0 rgba(255,255,255,.9);
+  --reader-fill: rgba(255,255,255,.55);
+  --accent-ink: #2a1c00;
+  --scrim: radial-gradient(circle at 50% -8%, rgba(255,255,255,.5), transparent 45%);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+html { background: var(--bg); }
+
+body {
+  font-family: var(--font);
+  color: var(--text);
+  background-color: var(--bg);
+  /* Dotted background — the surface the glass refracts. */
+  background-image: radial-gradient(var(--dot) var(--dot-size), transparent calc(var(--dot-size) + .6px));
+  background-size: 26px 26px;
+  background-position: -13px -13px;
+  background-attachment: fixed;
+  overflow-x: hidden;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color .5s ease, color .35s ease;
+}
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: var(--scrim);
+}
+
+.filter-bank { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ---- Glass material -------------------------------------------------------- */
+.glass, .glass-strong, .glass-pill, .glass-circle {
+  position: relative; isolation: isolate; overflow: hidden;
+  /* Fixed top-left scene sheen (a static reflection) — NOT cursor-tracked. */
+  background:
+    radial-gradient(105% 78% at 28% -22%, var(--sheen), transparent 38%),
+    var(--glass-body);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow), var(--top-highlight);
+}
+.glass        { border-radius: var(--radius); -webkit-backdrop-filter: url(#lgCard) blur(.3px) saturate(1.15) contrast(1.04); backdrop-filter: url(#lgCard) blur(.3px) saturate(1.15) contrast(1.04); }
+.glass-strong { border-radius: var(--radius); background: radial-gradient(105% 78% at 28% -22%, var(--sheen), transparent 38%), var(--glass-fill-strong); -webkit-backdrop-filter: url(#lgStrong) blur(.2px) saturate(1.14) contrast(1.03); backdrop-filter: url(#lgStrong) blur(.2px) saturate(1.14) contrast(1.03); }
+.glass-pill   { border-radius: 999px; -webkit-backdrop-filter: url(#lgPill) blur(.18px) saturate(1.16) contrast(1.05); backdrop-filter: url(#lgPill) blur(.18px) saturate(1.16) contrast(1.05); }
+.glass-circle { border-radius: 50%;   -webkit-backdrop-filter: url(#lgCircle) blur(.12px) saturate(1.18) contrast(1.05); backdrop-filter: url(#lgCircle) blur(.12px) saturate(1.18) contrast(1.05); }
+
+/* Inner bezel — suggests glass thickness (the specular inner highlight/shadow). */
+.glass::before, .glass-strong::before, .glass-pill::before, .glass-circle::before {
+  content: ""; position: absolute; inset: 1px; border-radius: inherit; z-index: 8;
+  pointer-events: none; box-shadow: var(--bezel);
+}
+/* Edge lens — the bright refractive rim (masked gradient border = the reflection). */
+.glass::after, .glass-strong::after, .glass-pill::after, .glass-circle::after {
+  content: ""; position: absolute; inset: 0; z-index: 9; pointer-events: none;
+  border-radius: inherit; padding: 1.1px; background: var(--rim); opacity: .92;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+
+.interactive { transition: transform .38s var(--motion-spring), box-shadow .25s ease, border-color .2s ease; }
+.interactive:hover { transform: translateY(-2px); border-color: var(--glass-border-hover); box-shadow: var(--shadow-hover), var(--top-highlight); }
+.interactive:active { transform: translateY(0) scale(.99); }
+
+:where(button, a, input, [role="switch"]):focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px;
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+/* ---- Layout ---------------------------------------------------------------- */
+.shell { max-width: 1180px; margin: 0 auto; padding: 18px clamp(14px, 3vw, 28px) 40px; }
+
+.nav {
+  position: sticky; top: 14px; z-index: 40;
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 10px 14px; margin-bottom: 22px;
+}
+.brand { display: flex; align-items: center; gap: 11px; }
+.brand .mark {
+  width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center;
+  font-weight: 800; font-size: 17px; color: var(--accent-ink);
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  box-shadow: 0 4px 14px rgba(245,158,11,.4), inset 0 1px 0 rgba(255,255,255,.5);
+}
+.brand h1 { font-size: 15px; font-weight: 700; margin: 0; letter-spacing: -.01em; }
+.brand p { margin: 0; font-size: 10.5px; color: var(--muted); }
+.nav-links { display: flex; align-items: center; gap: 8px; }
+.nav-link { font-size: 12.5px; font-weight: 600; color: var(--muted); text-decoration: none; padding: 8px 12px; border-radius: 999px; transition: color .2s, background .2s; }
+.nav-link:hover { color: var(--text); background: color-mix(in srgb, var(--text) 8%, transparent); }
+
+/* Theme toggle switch (glass) */
+.theme-toggle {
+  --w: 62px; --h: 32px;
+  position: relative; width: var(--w); height: var(--h); padding: 0; cursor: pointer;
+  border: 1px solid var(--glass-border); background: var(--glass-body);
+}
+.theme-toggle .knob {
+  position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; z-index: 10;
+  display: grid; place-items: center; font-size: 14px; line-height: 1;
+  transition: transform .42s var(--motion-spring);
+  border: 1px solid var(--glass-border);
+}
+:root[data-theme="light"] .theme-toggle .knob { transform: translateX(calc(var(--w) - 32px)); }
+.theme-toggle .ico { position: absolute; top: 50%; transform: translateY(-50%); font-size: 12px; opacity: .55; z-index: 5; }
+.theme-toggle .ico.sun { left: 9px; }
+.theme-toggle .ico.moon { right: 9px; }
+
+/* Hero */
+.hero { text-align: center; margin: 8px 0 26px; }
+.hero .pill {
+  display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600;
+  padding: 7px 14px; margin-bottom: 16px; color: var(--muted);
+}
+.hero h2 { font-size: clamp(28px, 5vw, 44px); line-height: 1.03; letter-spacing: -.03em; margin: 0 0 12px; }
+.hero h2 .grad { background: linear-gradient(135deg, #F59E0B, #D97706); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.hero p { max-width: 520px; margin: 0 auto; color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+/* Converter grid */
+.grid { display: grid; grid-template-columns: 5fr 7fr; gap: 16px; align-items: start; }
+.panel { padding: 16px; }
+.panel-label { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin-bottom: 12px; }
+
+/* Dropzone */
+.dz {
+  border: 1.5px dashed var(--glass-border); border-radius: 18px;
+  padding: 30px 18px; text-align: center; cursor: pointer;
+  transition: .3s var(--motion-spring); background: color-mix(in srgb, var(--text) 3%, transparent);
+}
+.dz:hover, .dz.drag { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); transform: scale(1.008); }
+.dz .up { width: 44px; height: 44px; margin: 0 auto 12px; display: grid; place-items: center; font-size: 20px; }
+.dz h3 { margin: 0 0 4px; font-size: 14px; font-weight: 600; }
+.dz p { margin: 0; font-size: 11.5px; color: var(--muted); }
+
+/* File rows */
+.files { display: grid; gap: 8px; margin-top: 12px; }
+.file { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 14px; }
+.file .stripe { width: 3px; height: 26px; border-radius: 99px; flex: none; }
+.file .meta { flex: 1; min-width: 0; }
+.file .name { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file .sub { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
+.tag { font-size: 8.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding: 2px 6px; border-radius: 5px; }
+.dot-s { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.status { font-size: 10px; color: var(--muted); }
+.x { width: 24px; height: 24px; border: none; background: transparent; color: var(--faint); cursor: pointer; border-radius: 8px; font-size: 16px; line-height: 1; }
+.x:hover { color: var(--text); background: color-mix(in srgb, var(--text) 10%, transparent); }
+
+/* Buttons */
+.actions { display: flex; gap: 9px; margin-top: 14px; }
+.btn { flex: 1; height: 44px; border: none; cursor: pointer; font-family: var(--font); font-size: 12.5px; font-weight: 700; color: var(--text); }
+.btn.primary { color: var(--accent-ink); background: linear-gradient(135deg, #F59E0B, #D97706); box-shadow: 0 8px 22px rgba(245,158,11,.28), inset 0 1px 0 rgba(255,255,255,.4); }
+.btn.icon { flex: none; width: 46px; }
+
+/* Output reader */
+.reader-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.stats { display: flex; align-items: center; gap: 10px; font-size: 10.5px; color: var(--muted); flex-wrap: wrap; }
+.stats b { color: var(--text); font-weight: 700; }
+.stats .tok { color: var(--accent); }
+.reader-actions { display: flex; gap: 7px; }
+.mini { height: 30px; padding: 0 12px; border: 1px solid var(--glass-border); background: color-mix(in srgb, var(--text) 5%, transparent); color: var(--text); font: inherit; font-size: 11px; font-weight: 600; border-radius: 10px; cursor: pointer; }
+.mini.accent { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 30%, transparent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+/* The reader keeps body text on a calmer, higher-opacity plane for contrast. */
+.reader {
+  border-radius: 16px; overflow: hidden; max-height: 420px; overflow-y: auto;
+  background: var(--reader-fill); border: 1px solid var(--glass-border);
+}
+.reader .bar { position: sticky; top: 0; display: flex; align-items: center; gap: 8px; padding: 9px 14px; backdrop-filter: blur(6px); background: color-mix(in srgb, var(--bg) 55%, transparent); border-bottom: 1px solid var(--glass-border); }
+.reader .traffic { display: flex; gap: 5px; }
+.reader .traffic i { width: 9px; height: 9px; border-radius: 50%; display: block; }
+.reader .lang { font-family: var(--mono); font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
+.md { margin: 0; padding: 16px 18px; font-family: var(--mono); font-size: 12px; line-height: 1.72; white-space: pre-wrap; word-break: break-word; color: var(--text); }
+.md .h { color: var(--accent); font-weight: 600; }
+.md .li { color: color-mix(in srgb, #38bdf8 78%, var(--text)); }
+.md .cm { color: var(--muted); }
+
+.footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; padding: 11px 16px; font-size: 10.5px; color: var(--muted); flex-wrap: wrap; }
+.footer a { color: inherit; }
+
+@media (max-width: 820px) {
+  .grid { grid-template-columns: 1fr; }
+  .brand p { display: none; }
+  .nav-links .nav-link.hide-sm { display: none; }
+}
+
+/* ---- Accessibility & fallbacks -------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+@media (prefers-contrast: more) {
+  :root[data-theme="dark"]  { --glass-border: rgba(255,255,255,.6); --muted: rgba(245,245,247,.88); }
+  :root[data-theme="light"] { --glass-border: rgba(20,20,22,.5); --muted: rgba(25,26,28,.82); }
+}
+/* If backdrop displacement filters are unsupported, degrade to a legible frost. */
+@supports not ((backdrop-filter: url("#lgCard")) or (-webkit-backdrop-filter: url("#lgCard"))) {
+  .glass, .glass-strong, .glass-pill, .glass-circle {
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  }
+  :root[data-theme="dark"]  .glass, :root[data-theme="dark"]  .glass-strong { background: rgba(30,31,34,.82); }
+  :root[data-theme="light"] .glass, :root[data-theme="light"] .glass-strong { background: rgba(255,252,242,.82); }
+}
+</style>
+</head>
+<body>
+
+<!-- SVG filter bank — GEOMETRY-AWARE refraction.
+     Each filter uses two hand-built edge-lens displacement maps (feImage):
+       · #lgMapMain — broad rounded-edge bend (strong at the rim, calm center)
+       · #lgMapEdge — narrow sharp rim for a secondary "echo"
+     Two chained feDisplacementMap passes = a compound bend that reads like
+     real glass, not the noisy field feTurbulence produces. Blur stays ≤0.4px. -->
+<svg class="filter-bank" aria-hidden="true">
+  <defs>
+    <filter id="lgCard" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+      <feImage href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAIAAADTED8xAAACe0lEQVR42u3dwY6CQBBF0a4uPtxPdyWmU3SAZcM5MYZMMrMQbx7oYiLi035ifJ49+tFzL8f1kWc/ybPfrX8/xoP9OcpxGw/2Z+p5b5PXsJ702RnJy2+DvPA+6ZP3WMxPfX0cnvfu9PNmAkAA8FabC2EsAFgAsABgAUAAIAAQAAgABAACAAGAAGD9AHwXjAUACwAWACwAWACwACAAEAC4BwALAAIAAYAAQAAgABAACAAEAAsEkF4ELAAIAAQAAgABgE+BwAKAAEAAIABwEwwWAAQAAgABgABAACAAEAD4IgwsAPj/AGABQAAgABAACAB8CgQWAAQALoHAAoAFAAsAFgAEAAIA9wBgAUAAIAC4xR0AFgAEAC6BwAKABQALABYABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACADu2Vp4EbAAYAHAAoAFAAGASyCwACAAEAA8LAB3AVgAEAAIANwDgAUACwAWACwACABcAoEFAAGAAEAAIADwKRBYAFglgPQiYAFAACAAEAAIAAQAAgABgC/CwAKAAEAAIABwEwwWAAQAAgABgADAp0BgAUAAIAAQAAgABAACAAGAAMD/BwALAAIAAYB7ALAAYAHAAoAFAAsAFgAEAAIAAYAAQAAgABAACAD+fA+MBQALABYALAAIAAQAD/cFuFkFrlqiYvIAAAAASUVORK5CYII=" preserveAspectRatio="none" result="mapA"/>
+      <feDisplacementMap in="SourceGraphic" in2="mapA" scale="30" xChannelSelector="R" yChannelSelector="G" result="bend"/>
+      <feImage href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAIAAADTED8xAAACcklEQVR42u3dsarCQBCG0X+TSZ7bR7eQDQuxsJLAnEOQW1kM+91JoXGM8Uoyki0Zyb5clVRyzNfPdd7+WK+a1/Um23znEfjVmGdyux3I+nbwvh7LWs7kerCv055kM2s6K/+Z6R2AHYANAF0D2A0BAYAAQADQKoAyBAQATQM4DAEbAGwAEAAIALoEcBoCNgAIANwCgQ0AAgABgABAACAA8GlQEAAIAHwpHgQAAgAPxwUBgKdDgwDgwdwAIQAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABIAAjQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAH9UGYaAAKBpAG6CEAB0DWA3BAQAAoB+AZQhIAAQAPQL4DAEBAACAAGAAEAA0CCA0xCwAUAA4BYIbAAQAAgAfBoUbACwAUAA4EvxIAAQAAgAPB0aPBwXbACIn0iCh3sDVZUFBgkbTlwAAAAASUVORK5CYII=" preserveAspectRatio="none" result="mapB"/>
+      <feDisplacementMap in="bend" in2="mapB" scale="14" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="lgStrong" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+      <feImage href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAIAAADTED8xAAACe0lEQVR42u3dwY6CQBBF0a4uPtxPdyWmU3SAZcM5MYZMMrMQbx7oYiLi035ifJ49+tFzL8f1kWc/ybPfrX8/xoP9OcpxGw/2Z+p5b5PXsJ702RnJy2+DvPA+6ZP3WMxPfX0cnvfu9PNmAkAA8FabC2EsAFgAsABgAUAAIAAQAAgABAACAAGAAGD9AHwXjAUACwAWACwAWACwACAAEAC4BwALAAIAAYAAQAAgABAACAAEAAsEkF4ELAAIAAQAAgABgE+BwAKAAEAAIABwEwwWAAQAAgABgABAACAAEAD4IgwsAPj/AGABQAAgABAACAB8CgQWAAQALoHAAoAFAAsAFgAEAAIA9wBgAUAAIAC4xR0AFgAEAC6BwAKABQALABYABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACADu2Vp4EbAAYAHAAoAFAAGASyCwACAAEAA8LAB3AVgAEAAIANwDgAUACwAWACwACABcAoEFAAGAAEAAIADwKRBYAFglgPQiYAFAACAAEAAIAAQAAgABgC/CwAKAAEAAIABwEwwWAAQAAgABgADAp0BgAUAAIAAQAAgABAACAAGAAMD/BwALAAIAAYB7ALAAYAHAAoAFAAsAFgAEAAIAAYAAQAAgABAACAD+fA+MBQALABYALAAIAAQAD/cFuFkFrlqiYvIAAAAASUVORK5CYII=" preserveAspectRatio="none" result="mapA"/>
+      <feDisplacementMap in="SourceGraphic" in2="mapA" scale="24" xChannelSelector="R" yChannelSelector="G" result="bend"/>
+      <feImage href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAIAAADTED8xAAACcklEQVR42u3dsarCQBCG0X+TSZ7bR7eQDQuxsJLAnEOQW1kM+91JoXGM8Uoyki0Zyb5clVRyzNfPdd7+WK+a1/Um23znEfjVmGdyux3I+nbwvh7LWs7kerCv055kM2s6K/+Z6R2AHYANAF0D2A0BAYAAQADQKoAyBAQATQM4DAEbAGwAEAAIALoEcBoCNgAIANwCgQ0AAgABgABAACAA8GlQEAAIAHwpHgQAAgAPxwUBgKdDgwDgwdwAIQAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABIAAjQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAH9UGYaAAKBpAG6CEAB0DWA3BAQAAoB+AZQhIAAQAPQL4DAEBAACAAGAAEAA0CCA0xCwAUAA4BYIbAAQAAgAfBoUbACwAUAA4EvxIAAQAAgAPB0aPBwXbACIn0iCh3sDVZUFBgkbTlwAAAAASUVORK5CYII=" preserveAspectRatio="none" result="mapB"/>
+      <feDisplacementMap in="bend" in2="mapB" scale="12" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="lgPill" x="-30%" y="-60%" width="160%" height="220%" color-interpolation-filters="sRGB">
+      <feImage href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAIAAADTED8xAAACe0lEQVR42u3dwY6CQBBF0a4uPtxPdyWmU3SAZcM5MYZMMrMQbx7oYiLi035ifJ49+tFzL8f1kWc/ybPfrX8/xoP9OcpxGw/2Z+p5b5PXsJ702RnJy2+DvPA+6ZP3WMxPfX0cnvfu9PNmAkAA8FabC2EsAFgAsABgAUAAIAAQAAgABAACAAGAAGD9AHwXjAUACwAWACwAWACwACAAEAC4BwALAAIAAYAAQAAgABAACAAEAAsEkF4ELAAIAAQAAgABgE+BwAKAAEAAIABwEwwWAAQAAgABgABAACAAEAD4IgwsAPj/AGABQAAgABAACAB8CgQWAAQALoHAAoAFAAsAFgAEAAIA9wBgAUAAIAC4xR0AFgAEAC6BwAKABQALABYABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACADu2Vp4EbAAYAHAAoAFAAGASyCwACAAEAA8LAB3AVgAEAAIANwDgAUACwAWACwACABcAoEFAAGAAEAAIADwKRBYAFglgPQiYAFAACAAEAAIAAQAAgABgC/CwAKAAEAAIABwEwwWAAQAAgABgADAp0BgAUAAIAAQAAgABAACAAGAAMD/BwALAAIAAYB7ALAAYAHAAoAFAAsAFgAEAAIAAYAAQAAgABAACAD+fA+MBQALABYALAAIAAQAD/cFuFkFrlqiYvIAAAAASUVORK5CYII=" preserveAspectRatio="none" result="mapA"/>
+      <feDisplacementMap in="SourceGraphic" in2="mapA" scale="32" xChannelSelector="R" yChannelSelector="G" result="bend"/>
+      <feImage href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAIAAADTED8xAAACcklEQVR42u3dsarCQBCG0X+TSZ7bR7eQDQuxsJLAnEOQW1kM+91JoXGM8Uoyki0Zyb5clVRyzNfPdd7+WK+a1/Um23znEfjVmGdyux3I+nbwvh7LWs7kerCv055kM2s6K/+Z6R2AHYANAF0D2A0BAYAAQADQKoAyBAQATQM4DAEbAGwAEAAIALoEcBoCNgAIANwCgQ0AAgABgABAACAA8GlQEAAIAHwpHgQAAgAPxwUBgKdDgwDgwdwAIQAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABIAAjQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAH9UGYaAAKBpAG6CEAB0DWA3BAQAAoB+AZQhIAAQAPQL4DAEBAACAAGAAEAA0CCA0xCwAUAA4BYIbAAQAAgAfBoUbACwAUAA4EvxIAAQAAgAPB0aPBwXbACIn0iCh3sDVZUFBgkbTlwAAAAASUVORK5CYII=" preserveAspectRatio="none" result="mapB"/>
+      <feDisplacementMap in="bend" in2="mapB" scale="15" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="lgCircle" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+      <feImage href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAIAAADTED8xAAACe0lEQVR42u3dwY6CQBBF0a4uPtxPdyWmU3SAZcM5MYZMMrMQbx7oYiLi035ifJ49+tFzL8f1kWc/ybPfrX8/xoP9OcpxGw/2Z+p5b5PXsJ702RnJy2+DvPA+6ZP3WMxPfX0cnvfu9PNmAkAA8FabC2EsAFgAsABgAUAAIAAQAAgABAACAAGAAGD9AHwXjAUACwAWACwAWACwACAAEAC4BwALAAIAAYAAQAAgABAACAAEAAsEkF4ELAAIAAQAAgABgE+BwAKAAEAAIABwEwwWAAQAAgABgABAACAAEAD4IgwsAPj/AGABQAAgABAACAB8CgQWAAQALoHAAoAFAAsAFgAEAAIA9wBgAUAAIAC4xR0AFgAEAC6BwAKABQALABYABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACADu2Vp4EbAAYAHAAoAFAAGASyCwACAAEAA8LAB3AVgAEAAIANwDgAUACwAWACwACABcAoEFAAGAAEAAIADwKRBYAFglgPQiYAFAACAAEAAIAAQAAgABgC/CwAKAAEAAIABwEwwWAAQAAgABgADAp0BgAUAAIAAQAAgABAACAAGAAMD/BwALAAIAAYB7ALAAYAHAAoAFAAsAFgAEAAIAAYAAQAAgABAACAD+fA+MBQALABYALAAIAAQAD/cFuFkFrlqiYvIAAAAASUVORK5CYII=" preserveAspectRatio="none" result="mapA"/>
+      <feDisplacementMap in="SourceGraphic" in2="mapA" scale="38" xChannelSelector="R" yChannelSelector="G" result="bend"/>
+      <feImage href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAIAAADTED8xAAACcklEQVR42u3dsarCQBCG0X+TSZ7bR7eQDQuxsJLAnEOQW1kM+91JoXGM8Uoyki0Zyb5clVRyzNfPdd7+WK+a1/Um23znEfjVmGdyux3I+nbwvh7LWs7kerCv055kM2s6K/+Z6R2AHYANAF0D2A0BAYAAQADQKoAyBAQATQM4DAEbAGwAEAAIALoEcBoCNgAIANwCgQ0AAgABgABAACAA8GlQEAAIAHwpHgQAAgAPxwUBgKdDgwDgwdwAIQAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgABAACAAGAAEAAIAAQAAgAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABgABAACAAEAAIAAQAAgABIAAjQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAAIAAYAAQAAgABAACAAEAH9UGYaAAKBpAG6CEAB0DWA3BAQAAoB+AZQhIAAQAPQL4DAEBAACAAGAAEAA0CCA0xCwAUAA4BYIbAAQAAgAfBoUbACwAUAA4EvxIAAQAAgAPB0aPBwXbACIn0iCh3sDVZUFBgkbTlwAAAAASUVORK5CYII=" preserveAspectRatio="none" result="mapB"/>
+      <feDisplacementMap in="bend" in2="mapB" scale="18" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="shell">
+
+  <!-- Navbar -->
+  <nav class="nav glass interactive">
+    <div class="brand">
+      <div class="mark">M</div>
+      <div>
+        <h1>MDify Pro</h1>
+        <p>Document → Markdown</p>
+      </div>
+    </div>
+    <div class="nav-links">
+      <a class="nav-link hide-sm" href="#">Why Use It?</a>
+      <a class="nav-link hide-sm" href="#">GitHub</a>
+      <button class="theme-toggle glass-pill" id="themeToggle" role="switch" aria-checked="false" aria-label="Toggle light / dark theme">
+        <span class="ico sun" aria-hidden="true">☀️</span>
+        <span class="ico moon" aria-hidden="true">🌙</span>
+        <span class="knob glass-circle" id="knob" aria-hidden="true">🌙</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <span class="pill glass-pill">✦ Liquid Glass · powered by MarkItDown</span>
+    <h2>Documents in.<br /><span class="grad">Clean Markdown</span> out.</h2>
+    <p>A liquid-glass preview of MDify Pro. The dotted surface refracts through every panel — real lensing at the edges, not a frosted blur.</p>
+  </header>
+
+  <!-- Converter -->
+  <div class="grid">
+
+    <!-- Input -->
+    <section class="panel glass interactive" aria-label="Input">
+      <div class="panel-label">Input</div>
+
+      <label class="dz" id="dz">
+        <input type="file" multiple hidden id="fileInput" />
+        <div class="up glass-circle">↑</div>
+        <h3>Drop files or click to browse</h3>
+        <p>PDF · Word · Excel · PowerPoint · HTML · CSV · Image</p>
+      </label>
+
+      <div class="files" id="files">
+        <!-- seeded rows -->
+      </div>
+
+      <div class="actions">
+        <button class="btn primary glass-pill interactive" id="convertBtn">Convert 3 files</button>
+        <button class="btn icon glass-pill interactive" title="Download all" aria-label="Download all">↓</button>
+      </div>
+    </section>
+
+    <!-- Output -->
+    <section class="panel glass interactive" aria-label="Output">
+      <div class="panel-label">Output</div>
+
+      <div class="reader-head">
+        <div class="stats">
+          <span class="mono">quarterly-report.md</span>
+          <span><b>1,141</b> words</span>
+          <span><b>7,088</b> chars</span>
+          <span class="tok">~1,812 tokens</span>
+        </div>
+        <div class="reader-actions">
+          <button class="mini" id="copyBtn">Copy</button>
+          <button class="mini accent">↓ .md</button>
+        </div>
+      </div>
+
+      <div class="reader glass-strong">
+        <div class="bar">
+          <div class="traffic"><i style="background:#f4736280"></i><i style="background:#f5b23f80"></i><i style="background:#34c75980"></i></div>
+          <span class="lang">markdown</span>
+        </div>
+        <pre class="md" id="md"></pre>
+      </div>
+    </section>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer glass">
+    <span>MDify Pro · Liquid Glass prototype</span>
+    <span>Real refraction · feDisplacementMap · dual dotted themes</span>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const root = document.documentElement;
+  const knob = document.getElementById('knob');
+  const toggle = document.getElementById('themeToggle');
+
+  // ---- Theme (persisted; respects system on first visit) -------------------
+  const store = {
+    get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* sandboxed */ } },
+  };
+  const stored = store.get('lg-theme');
+  const initial = stored || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  applyTheme(initial);
+
+  function applyTheme(t) {
+    root.setAttribute('data-theme', t);
+    const light = t === 'light';
+    toggle.setAttribute('aria-checked', String(light));
+    knob.textContent = light ? '☀️' : '🌙';
+    store.set('lg-theme', t);
+  }
+  toggle.addEventListener('click', () => {
+    applyTheme(root.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+  });
+
+  // ---- Mock file queue ------------------------------------------------------
+  const TYPES = {
+    pdf:  ['PDF', '#F43F5E'], docx: ['Word', '#3B82F6'], xlsx: ['Excel', '#22C55E'],
+    pptx: ['PPT', '#F97316'], png: ['Image', '#60A5FA'], csv: ['CSV', '#2DD4BF'],
+  };
+  const seed = [
+    ['quarterly-report.pdf', 'done', 'pdf'],
+    ['revenue-model.docx', 'done', 'docx'],
+    ['metrics.xlsx', 'converting', 'xlsx'],
+  ];
+  const filesEl = document.getElementById('files');
+  function ext(name) { return name.split('.').pop().toLowerCase(); }
+  function render(list) {
+    filesEl.innerHTML = '';
+    list.forEach(([name, status, e]) => {
+      const [label, color] = TYPES[e] || ['File', '#8b8b90'];
+      const sdot = status === 'done' ? '#34c759' : status === 'converting' ? '#f5b23f' : '#8b8b90';
+      const row = document.createElement('div');
+      row.className = 'file glass interactive';
+      row.innerHTML =
+        `<span class="stripe" style="background:${color}"></span>
+         <div class="meta">
+           <div class="name">${name}</div>
+           <div class="sub">
+             <span class="tag" style="color:${color};background:${color}22">${label}</span>
+             <span class="dot-s" style="background:${sdot}"></span>
+             <span class="status">${status === 'done' ? 'Done' : status === 'converting' ? 'Converting…' : 'Pending'}</span>
+           </div>
+         </div>
+         <button class="x" aria-label="Remove ${name}">×</button>`;
+      row.querySelector('.x').onclick = () => row.remove();
+      filesEl.appendChild(row);
+    });
+  }
+  render(seed);
+
+  const dz = document.getElementById('dz');
+  ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag'); }));
+  ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
+  dz.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+  document.getElementById('fileInput').addEventListener('change', e => addFiles(e.target.files));
+  function addFiles(fl) {
+    [...fl].forEach(f => seed.push([f.name, 'pending', ext(f.name)]));
+    render(seed);
+  }
+
+  // ---- Copy feedback --------------------------------------------------------
+  const copyBtn = document.getElementById('copyBtn');
+  copyBtn.addEventListener('click', () => {
+    copyBtn.textContent = '✓ Copied';
+    setTimeout(() => (copyBtn.textContent = 'Copy'), 1500);
+  });
+
+  // ---- Sample markdown (syntax-tinted) --------------------------------------
+  const sample = [
+    ['# Quarterly Report — Q3', 'h'],
+    ['', ''],
+    ['## Executive Summary', 'h'],
+    ['Revenue grew **18%** quarter-over-quarter, driven by', ''],
+    ['expansion in the enterprise segment.', ''],
+    ['', ''],
+    ['- Net new ARR: $2.4M', 'li'],
+    ['- Gross margin: 82%', 'li'],
+    ['- Logo retention: 96%', 'li'],
+    ['', ''],
+    ['## Regional Breakdown', 'h'],
+    ['| Region | Revenue | Growth |', ''],
+    ['|--------|---------|--------|', 'cm'],
+    ['| NA     | $8.1M   | +14%   |', ''],
+    ['| EMEA   | $4.7M   | +23%   |', ''],
+    ['', ''],
+    ['> Converted to clean Markdown — 70% fewer tokens.', 'cm'],
+  ];
+  document.getElementById('md').innerHTML = sample
+    .map(([t, c]) => c ? `<span class="${c}">${t}</span>` : t)
+    .join('\n');
+})();
+</script>
+</body>
+</html>

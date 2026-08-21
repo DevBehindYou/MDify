@@ -1,37 +1,33 @@
-# render.yaml — deploys both services in one click from the Render dashboard.
+# render.yaml — MDify Pro BACKEND deploy blueprint (Render).
+#
+# MDify Pro is deployed as two INDEPENDENT services:
+#   • Backend  (this file)          → Render
+#   • Frontend (Next.js, /frontend) → Vercel  (set Root Directory = frontend)
+#
+# The frontend is intentionally NOT defined here — it lives on Vercel with its
+# own env vars and build config, per the MDify Pro architecture.
 # Docs: https://render.com/docs/blueprint-spec
 
 services:
-  # ── Python FastAPI backend ──────────────────────────────────────────────────
   - type: web
-    name: markitdown-backend
+    name: mdify-pro-api
     runtime: python
     rootDir: backend
-    plan: free                       # upgrade to Starter ($7/mo) for no sleep
+    plan: free                       # upgrade to Starter ($7/mo) to remove cold starts
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health   # Render pings this to confirm the service is live
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
-      # Set FRONTEND_URL after the frontend is first deployed so CORS is correct.
-      # Example: https://markitdown-frontend.onrender.com
+      # Comma-separated allowed CORS origins. Set to the deployed Vercel URL
+      # after the frontend's first deploy, e.g. https://mdify-pro.vercel.app
       - key: FRONTEND_URL
-        value: ""                    # fill in after first deploy
+        value: ""
 
-  # ── Next.js frontend ────────────────────────────────────────────────────────
-  - type: web
-    name: markitdown-frontend
-    runtime: node
-    rootDir: frontend
-    plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npm start
-    envVars:
-      - key: NODE_VERSION
-        value: 20.11.0
-      # Point at the backend service URL — fill in after backend is first deployed.
-      # Example: https://markitdown-backend.onrender.com
-      - key: BACKEND_URL
-        value: ""                    # fill in after first deploy
-      - key: PORT
-        value: "3000"
+# ── Cold starts (free tier) ───────────────────────────────────────────────────
+# The free plan spins the service down when idle (~15 min) and takes 20–60s to
+# wake. The frontend handles this honestly (wake ping + status + countdown).
+# To keep it warm during active hours, point an external uptime pinger at:
+#   https://mdify-pro-api.onrender.com/api/v1/ready
+# (a near-zero-cost liveness endpoint that does no import work).

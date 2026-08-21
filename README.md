@@ -1,121 +1,146 @@
-<p align="center">
-  <img src="frontend/public/mdify-icon.png" width="80" height="80" alt="MDify logo" style="border-radius:18px" />
-</p>
+# MDify Pro
 
-<h1 align="center">MDify</h1>
+> Upload documents → get clean, RAG-ready **Markdown**. A production-grade rebuild of MDify.
 
-<p align="center">
-  <strong>Drop a document. Get Markdown.</strong><br/>
-  Built on <a href="https://github.com/microsoft/markitdown">Microsoft MarkItDown</a>.
-  Made by <a href="https://github.com/DevBehindYou">DevBehindYou</a>.
-</p>
+MDify Pro turns PDFs, Office documents, web pages, data files, and images into structured
+Markdown that LLM pipelines and humans can actually use. It is a **separate, independent
+product** from the original MDify — its own codebase, deployments, and release lifecycle —
+built on Microsoft's [MarkItDown](https://github.com/microsoft/markitdown) engine.
 
-<p align="center">
-  <a href="https://mdify-app.vercel.app"><img src="https://img.shields.io/badge/Live_Demo-mdify--app.vercel.app-F59E0B?style=flat-square&logo=render&logoColor=white" alt="Live Demo" /></a>
-  <a href="https://github.com/DevBehindYou"><img src="https://img.shields.io/badge/Developer-DevBehindYou-181717?style=flat-square&logo=github&logoColor=white" alt="Developer" /></a>
-  <a href="https://github.com/microsoft/markitdown"><img src="https://img.shields.io/badge/Powered_by-MarkItDown-0078D4?style=flat-square&logo=microsoft&logoColor=white" alt="MarkItDown" /></a>
-</p>
+- **Frontend:** Next.js 14 + TypeScript + Tailwind (MVVM) → **Vercel**
+- **Backend:** FastAPI + MarkItDown, layered architecture → **Render**
+- No account. No watermark. Free and open source.
 
 ---
 
-## The Problem
-
-You have a folder of PDFs, Word docs, spreadsheets, and slide decks. You need them in Markdown. Maybe you're feeding files into an LLM pipeline. Maybe you're migrating a wiki. Maybe you're tired of copy-pasting from Word into your CMS.
-
-MDify handles the conversion. Upload your files. Click convert. Download the `.md` output.
-
-No account. No watermark. No pricing page.
-
----
-
-## What It Does
-
-MDify is a free, open-source web app. You drag documents onto it, and it gives you clean Markdown files back.
-
-- **12+ file formats** in, one format out
-- **10 files per batch**, converted one at a time to stay within memory limits
-- **Syntax-highlighted preview** right in the browser
-- **Copy or download** with one click
-- **Dark-themed UI** because nobody asked for light mode
-
----
-
-## Supported Formats
-
-| Format | Extensions |
-|--------|-----------|
-| PDF | `.pdf` |
-| Word | `.docx` |
-| Excel | `.xlsx` `.xls` |
-| PowerPoint | `.pptx` |
-| HTML | `.html` `.htm` |
-| Plain Text | `.txt` |
-| CSV | `.csv` |
-| JSON | `.json` |
-| XML | `.xml` |
-| ePub | `.epub` |
-| Images | `.jpg` `.jpeg` `.png` (metadata extraction) |
-
----
-
-## How It Works
+## Architecture
 
 ```
-Your files → Next.js frontend → FastAPI backend → MarkItDown → clean .md
+Browser ──HTTPS──►  Next.js (Vercel)  ──proxy rewrite──►  FastAPI (Render)
+                    View / ViewModel                      API ▸ Service ▸ Pipeline ▸ Converter
 ```
 
-The frontend is a Next.js 14 single-page app with drag-and-drop upload. It proxies requests to a FastAPI backend through `next.config.js` rewrites. The backend wraps Microsoft's MarkItDown library, converts files to Markdown, and sends the output back as JSON.
+**Frontend — MVVM.** The View (`app/`, `components/`) is purely presentational. ViewModels
+(`features/conversion/*` hooks) own all state and orchestration. The Model/Repository
+(`lib/api/client.ts`) is the only code that touches the network. Components never call
+`fetch` directly.
 
-Your browser never talks to the Python server directly. The Next.js app handles the proxy.
+**Backend — layered.** A request flows through clear seams, each independently testable:
+
+```
+API route (app/api/v1)
+   ▸ Conversion service (app/services)        ← the one orchestration point
+       ▸ Security validation (app/security)   ← trust boundary: magic-byte sniff, size, sanitize
+       ▸ Converter registry → MarkItDown adapter (app/converters)   ← swappable engine seam
+       ▸ Pipeline (app/pipeline): normalize → analyze (stats + quality)
+```
+
+This shape means future work (OCR/layout engine, RAG chunking, a public API, a separate
+conversion worker) slots in behind an existing seam without a rewrite.
 
 ---
 
-## Tech Stack
+## Supported formats
 
-| Layer | Tech |
-|-------|------|
-| Frontend | Next.js 14, React 18, Tailwind CSS |
-| Backend | Python 3.11, FastAPI, Uvicorn |
-| Conversion | Microsoft MarkItDown |
-| Hosting | Render (free tier) |
+Smoke-tested end-to-end in this build:
+
+| Format | Ext | Tables | Notes |
+|---|---|---|---|
+| PDF | `.pdf` | ⚠ text-native | Scanned/image PDFs surface a "low structure" warning (OCR is a later phase) |
+| Word | `.docx` | ✓ | Strong structure preservation |
+| PowerPoint | `.pptx` | ✓ | Slides + notes |
+| Excel | `.xlsx` | ✓ | Rows → Markdown tables |
+| HTML | `.html` `.htm` | ✓ | |
+| CSV / TSV | `.csv` `.tsv` | ✓ | |
+| JSON / XML | `.json` `.xml` | — | |
+| Text / Markdown | `.txt` `.md` | — | |
+| Image | `.png` `.jpg` … | — | Metadata extraction (no OCR on free tier) |
+
+Also accepted (MarkItDown extras installed): `.xls` (legacy Excel), `.epub`, and the image
+family `.jpg .jpeg .gif .bmp .tiff .webp`.
+
+Every conversion returns document **stats** (word/char/line counts, estimated tokens) and a
+**quality summary** (headings, tables, links, images, and a structure-loss warning). Token
+counts are estimates (~4 chars/token) and vary by model tokenizer.
 
 ---
 
-## Run It Locally
+## Local development
 
-**Backend:**
+**Backend** (Python 3.11+):
 
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate    # Windows: venv\Scripts\activate
+python -m venv .venv && . .venv/Scripts/activate   # or: source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8000
 ```
 
-**Frontend** (second terminal):
+- Health: `http://localhost:8000/api/v1/health`
+- API docs (OpenAPI/Swagger): `http://localhost:8000/docs`
+
+**Frontend** (Node 20+):
 
 ```bash
 cd frontend
-cp .env.example .env.local
 npm install
-npm run dev
+cp .env.example .env.local   # set BACKEND_URL=http://localhost:8000
+npm run dev                  # http://localhost:3000
 ```
 
-Open `http://localhost:3000`. Upload a file. Watch it convert.
+---
+
+## Testing & CI
+
+```bash
+# backend
+cd backend && ruff check . && pytest -q
+
+# frontend
+cd frontend && npm run typecheck && npm run lint && npm run build
+```
+
+GitHub Actions (`.github/workflows/ci.yml`) runs both on every push/PR to `main`.
 
 ---
 
-## Live Demo
+## Deployment (two independent services)
 
-The app runs free on Render. First load takes 20-30 seconds while the backend wakes up. The frontend shows a countdown while it waits.
+**Backend → Render.** Uses `render.yaml` (Blueprint). Free tier by default; health check
+at `/api/v1/health`. After the frontend is live, set the backend env var
+`FRONTEND_URL=https://<your-frontend>.vercel.app` for CORS.
 
-**App:** [https://mdify-app.vercel.app](https://mdify-app.vercel.app/)
-**Use Cases:** [https://mdify-app.vercel.app/usecase](https://mdify-app.vercel.app/usecase)
+**Frontend → Vercel.** Create a Vercel project with **Root Directory = `frontend`**. Set env
+vars:
+
+```
+BACKEND_URL=https://mdify-pro-api.onrender.com
+NEXT_PUBLIC_SITE_URL=https://<your-frontend>.vercel.app
+```
+
+### Cold starts (free tier)
+Render's free plan sleeps after inactivity and takes ~20–60s to wake. The frontend handles
+this honestly — a direct wake ping, a live backend-status indicator, and a countdown — rather
+than an infinite spinner. To keep it warm during active hours, point an uptime pinger at
+`/api/v1/ready`.
 
 ---
 
-## Developer
+## Roadmap
 
-Built by **[DevBehindYou](https://github.com/DevBehindYou)**.
-Powered by Microsoft's open-source [MarkItDown](https://github.com/microsoft/markitdown) library.
+MDify Pro is built to grow phase-by-phase, each phase deployable and useful on its own:
+
+1. **Foundation + core conversion + hardening** ← *this release*
+2. Parallel batch, ZIP export, document-intelligence panel, session-local recent files
+3. Public `/api/v1` with API keys + OpenAPI (the RAG/developer audience)
+4. Optional accounts: history, preferences (free anonymous flow stays untouched)
+5. AI/RAG: OCR/layout toggle for hard PDFs, RAG chunking, quality scoring
+6. Monetization: open-core freemium (Free / Pro / API / Enterprise)
+7. Platform: CLI/PyPI, GitHub Action, cloud import, self-host
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE). Built by [DevBehindYou](https://github.com/DevBehindYou),
+powered by Microsoft MarkItDown.

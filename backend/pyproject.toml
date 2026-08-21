@@ -1,0 +1,19 @@
+[tool.pytest.ini_options]
+# Make the backend root importable so `import app...` works from tests.
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ARG", "SIM"]
+ignore = [
+  "B008",   # FastAPI uses `= File(...)` / `Depends()` in defaults by design
+  "UP042",  # prefer explicit `str, Enum` over StrEnum for readability
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ARG"]
+"tests/fixtures.py" = ["ARG", "E501"]  # exact PDF byte-literal can't wrap
