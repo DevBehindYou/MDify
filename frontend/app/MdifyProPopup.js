@@ -64,18 +64,43 @@ export default function MdifyProPopup() {
           z-index: 99999;
           padding: 12px;
           border-radius: 16px;
+          isolation: isolate;
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
           background:
-            radial-gradient(320px circle at 0% 0%, rgba(245, 158, 11, 0.22), transparent 62%),
-            rgba(20, 21, 24, 0.72);
-          -webkit-backdrop-filter: blur(16px) saturate(1.2);
-          backdrop-filter: blur(16px) saturate(1.2);
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+            radial-gradient(300px circle at 0% 0%, rgba(245, 158, 11, 0.28), transparent 60%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+            rgba(22, 23, 26, 0.42);
+          -webkit-backdrop-filter: blur(22px) saturate(1.7) brightness(1.05);
+          backdrop-filter: blur(22px) saturate(1.7) brightness(1.05);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          box-shadow:
+            0 18px 44px rgba(0, 0, 0, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.28),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.3);
           opacity: 0;
           transform: translateY(16px);
           pointer-events: none;
           transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.22, 0.8, 0.2, 1);
+        }
+        /* Refractive rim — the signature liquid-glass edge. */
+        .mpp::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          padding: 1px;
+          pointer-events: none;
+          background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.55),
+            rgba(255, 255, 255, 0.06) 26%,
+            rgba(245, 158, 11, 0.3) 55%,
+            rgba(255, 255, 255, 0.08) 74%,
+            rgba(255, 255, 255, 0.4)
+          );
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
         }
         .mpp-show {
           opacity: 1;
