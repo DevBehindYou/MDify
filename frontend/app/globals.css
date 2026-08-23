@@ -14,9 +14,9 @@
   --border: #1f1f24;
   --border-2: #1a1a1f;
   --border-3: #2a2a30;
-  --text: #ececf1;
-  --muted: #a1a1aa;
-  --faint: #71717a;
+  --text: #f2f2f6;
+  --muted: #c2c2cc;
+  --faint: #9494a0;
   --accent: #f59e0b;
   --accent-text: #f59e0b;
   --md-body: #b4b4c0;
@@ -38,7 +38,7 @@
   --border-3: #cbd5e1;
   --text: #18181b;
   --muted: #52525b;
-  --faint: #94a3b8;
+  --faint: #64748b;
   --accent: #f59e0b;
   --accent-text: #b45309;
   --md-body: #3f3f46;

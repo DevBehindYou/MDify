@@ -1,11 +1,11 @@
 'use client';
 
 // Mini-Frame promo (liquid glass) pointing legacy MDify users at MDify Pro.
-// Bottom-left, appears after 10s, dismissed for the rest of the session.
+// Bottom-left, appears after 5s. Reappears on every reload (dismissal is not
+// persisted), so a page refresh shows it again.
 
 import { useEffect, useState } from 'react';
 
-const KEY = 'mdify-pro-promo-dismissed';
 const PRO_URL = 'https://mdify-pro-app.vercel.app';
 
 export default function MdifyProPopup() {
@@ -14,23 +14,11 @@ export default function MdifyProPopup() {
 
   useEffect(() => {
     setMounted(true);
-    try {
-      if (sessionStorage.getItem(KEY)) return;
-    } catch (e) {
-      /* storage unavailable */
-    }
-    const t = setTimeout(() => setShown(true), 10000);
+    const t = setTimeout(() => setShown(true), 5000);
     return () => clearTimeout(t);
   }, []);
 
-  const dismiss = () => {
-    setShown(false);
-    try {
-      sessionStorage.setItem(KEY, '1');
-    } catch (e) {
-      /* ignore */
-    }
-  };
+  const dismiss = () => setShown(false);
 
   if (!mounted) return null;
 
