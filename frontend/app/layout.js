@@ -1,5 +1,6 @@
 import './globals.css';
 import { Analytics } from '@vercel/analytics/next';
+import MdifyProPopup from './MdifyProPopup';
 
 const BASE_URL = 'https://mdify-app.onrender.com';
 
@@ -107,6 +108,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className="h-full">
         {children}
+        <MdifyProPopup />
         <Analytics />
       </body>
     </html>
