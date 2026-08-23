@@ -120,12 +120,12 @@ export default function UseCasePage() {
   return (
     <div
       className="min-h-screen flex flex-col"
-      style={{ background: '#08080A', color: '#ECECF1', fontFamily: 'Inter, sans-serif' }}
+      style={{ background: 'var(--bg)', color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}
     >
       {/* ── Nav ── */}
       <nav
         className="flex-none flex items-center justify-between px-6 py-4 border-b sticky top-0 z-50"
-        style={{ borderColor: '#1A1A1F', background: 'rgba(8,8,10,0.95)', backdropFilter: 'blur(12px)' }}
+        style={{ borderColor: 'var(--border-2)', background: 'color-mix(in srgb, var(--bg) 92%, transparent)', backdropFilter: 'blur(12px)' }}
       >
         <Link href="/" className="flex items-center gap-2.5 group">
           <img
@@ -142,7 +142,7 @@ export default function UseCasePage() {
             href="https://github.com/DevBehindYou"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+            className="flex items-center gap-1.5 text-xs text-[color:var(--muted)] hover:text-[color:var(--text)] transition-colors"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
@@ -194,12 +194,12 @@ export default function UseCasePage() {
         </h1>
 
         <div className="max-w-xl space-y-3">
-          <p className="text-base md:text-lg text-zinc-400 leading-relaxed">
+          <p className="text-base md:text-lg text-[color:var(--muted)] leading-relaxed">
             Every file you upload arrives as clean Markdown. That means fewer tokens burned, better LLM comprehension, and documents you can version-control in Git.
           </p>
-          <p className="text-sm text-zinc-500 leading-relaxed">
+          <p className="text-sm text-[color:var(--muted)] leading-relaxed">
             MDify converts 12+ file formats to structured{' '}
-            <code className="text-amber-500/80 text-xs bg-amber-500/5 px-1.5 py-0.5 rounded">.md</code>{' '}
+            <code className="text-[color:var(--accent-text)]/80 text-xs bg-amber-500/5 px-1.5 py-0.5 rounded">.md</code>{' '}
             in seconds. No sign-up. No watermark. Open source from line one.
           </p>
         </div>
@@ -219,8 +219,8 @@ export default function UseCasePage() {
             href="https://github.com/microsoft/markitdown"
             target="_blank"
             rel="noopener noreferrer"
-            className="px-5 py-2.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-all hover:scale-105"
-            style={{ background: '#111114', border: '1px solid #1F1F24' }}
+            className="px-5 py-2.5 rounded-xl text-sm font-medium text-[color:var(--muted)] hover:text-[color:var(--text)] transition-all hover:scale-105"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
           >
             MarkItDown on GitHub ↗
           </a>
@@ -235,7 +235,7 @@ export default function UseCasePage() {
               key={stat.label}
               className="flex flex-col items-center justify-center gap-1 py-6 px-4 rounded-xl text-center transition-all duration-200 hover:translate-y-[-2px]"
               style={{
-                background: '#111114',
+                background: 'var(--surface)',
                 border: `1px solid ${stat.color}20`,
                 boxShadow: `0 0 0 1px ${stat.color}08`,
               }}
@@ -246,7 +246,7 @@ export default function UseCasePage() {
               >
                 {stat.value}
               </span>
-              <span className="text-[10px] text-zinc-600 uppercase tracking-[0.14em] font-semibold">
+              <span className="text-[10px] text-[color:var(--muted)] uppercase tracking-[0.14em] font-semibold">
                 {stat.label}
               </span>
             </div>
@@ -254,14 +254,14 @@ export default function UseCasePage() {
         </div>
       </section>
 
-      <div style={{ borderTop: '1px solid #1A1A1F' }} className="mx-6" />
+      <div style={{ borderTop: '1px solid var(--border-2)' }} className="mx-6" />
 
       {/* ── Why Markdown (value props) ── */}
       <section className="px-6 py-16 max-w-6xl mx-auto w-full">
         <div className="flex flex-col gap-3 mb-10">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-600">The case for Markdown</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--muted)]">The case for Markdown</p>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Why this matters for your pipeline</h2>
-          <p className="text-sm text-zinc-500 max-w-lg">
+          <p className="text-sm text-[color:var(--muted)] max-w-lg">
             Raw PDFs waste tokens. HTML carries hundreds of lines of noise. Markdown is the format LLMs were trained on,
             and the conversion pays for itself on the first batch.
           </p>
@@ -273,7 +273,7 @@ export default function UseCasePage() {
               key={vp.title}
               className="flex flex-col gap-4 p-6 rounded-xl transition-all duration-200 hover:translate-y-[-2px]"
               style={{
-                background: '#111114',
+                background: 'var(--surface)',
                 border: `1px solid ${vp.color}20`,
                 boxShadow: `0 4px 16px rgba(0,0,0,0.3), 0 0 0 1px ${vp.color}08`,
               }}
@@ -285,15 +285,15 @@ export default function UseCasePage() {
                 >
                   {vp.icon}
                 </div>
-                <h3 className="text-sm font-semibold text-zinc-100 leading-snug">{vp.title}</h3>
+                <h3 className="text-sm font-semibold text-[color:var(--text)] leading-snug">{vp.title}</h3>
               </div>
-              <p className="text-xs text-zinc-500 leading-relaxed">{vp.body}</p>
+              <p className="text-xs text-[color:var(--muted)] leading-relaxed">{vp.body}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <div style={{ borderTop: '1px solid #1A1A1F' }} className="mx-6" />
+      <div style={{ borderTop: '1px solid var(--border-2)' }} className="mx-6" />
 
       {/* ── Token comparison callout ── */}
       <section className="px-6 py-16 max-w-4xl mx-auto w-full">
@@ -307,9 +307,9 @@ export default function UseCasePage() {
           <div className="flex flex-col md:flex-row items-center gap-8">
             {/* Before */}
             <div className="flex-1 text-center">
-              <p className="text-[10px] uppercase tracking-[0.14em] text-zinc-600 font-semibold mb-2">Raw PDF</p>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--muted)] font-semibold mb-2">Raw PDF</p>
               <div className="text-4xl md:text-5xl font-black text-red-400/80">~15K</div>
-              <p className="text-xs text-zinc-600 mt-1">tokens per document</p>
+              <p className="text-xs text-[color:var(--muted)] mt-1">tokens per document</p>
             </div>
 
             {/* Arrow */}
@@ -320,19 +320,19 @@ export default function UseCasePage() {
               >
                 →
               </div>
-              <p className="text-[10px] text-amber-500/60 font-semibold uppercase tracking-wider">MDify</p>
+              <p className="text-[10px] text-[color:var(--accent-text)]/60 font-semibold uppercase tracking-wider">MDify</p>
             </div>
 
             {/* After */}
             <div className="flex-1 text-center">
-              <p className="text-[10px] uppercase tracking-[0.14em] text-zinc-600 font-semibold mb-2">Clean Markdown</p>
+              <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--muted)] font-semibold mb-2">Clean Markdown</p>
               <div className="text-4xl md:text-5xl font-black text-emerald-400/80">~4.5K</div>
-              <p className="text-xs text-zinc-600 mt-1">tokens per document</p>
+              <p className="text-xs text-[color:var(--muted)] mt-1">tokens per document</p>
             </div>
           </div>
 
           <div className="mt-6 pt-6" style={{ borderTop: '1px solid rgba(245,158,11,0.1)' }}>
-            <p className="text-xs text-zinc-500 leading-relaxed text-center max-w-lg mx-auto">
+            <p className="text-xs text-[color:var(--muted)] leading-relaxed text-center max-w-lg mx-auto">
               Based on GPT-4 tokenization of a 12-page financial PDF. Your mileage varies by document structure,
               but the pattern holds: Markdown strips layout metadata, font definitions, and binary noise that
               inflate token counts without adding retrieval value.
@@ -341,14 +341,14 @@ export default function UseCasePage() {
         </div>
       </section>
 
-      <div style={{ borderTop: '1px solid #1A1A1F' }} className="mx-6" />
+      <div style={{ borderTop: '1px solid var(--border-2)' }} className="mx-6" />
 
       {/* ── Who it's for ── */}
       <section className="px-6 py-16 max-w-6xl mx-auto w-full">
         <div className="flex flex-col gap-3 mb-10">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Who it's for</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--muted)]">Who it's for</p>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Six teams. One tool.</h2>
-          <p className="text-sm text-zinc-500 max-w-lg">
+          <p className="text-sm text-[color:var(--muted)] max-w-lg">
             MDify solves the same problem everywhere: you have documents in one format and you need them in Markdown.
             The specifics change. The conversion doesn't.
           </p>
@@ -360,8 +360,8 @@ export default function UseCasePage() {
               key={uc.title}
               className="flex flex-col gap-4 p-5 rounded-xl transition-all duration-200 hover:translate-y-[-2px]"
               style={{
-                background: '#111114',
-                border: '1px solid #1F1F24',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
               }}
               onMouseEnter={(e) => {
@@ -369,7 +369,7 @@ export default function UseCasePage() {
                 e.currentTarget.style.boxShadow = `0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px ${uc.color}18`;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#1F1F24';
+                e.currentTarget.style.borderColor = 'var(--border)';
                 e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
               }}
             >
@@ -380,10 +380,10 @@ export default function UseCasePage() {
                 >
                   {uc.icon}
                 </div>
-                <h3 className="text-sm font-semibold text-zinc-100 mt-2">{uc.title}</h3>
+                <h3 className="text-sm font-semibold text-[color:var(--text)] mt-2">{uc.title}</h3>
               </div>
 
-              <p className="text-xs text-zinc-500 leading-relaxed">{uc.body}</p>
+              <p className="text-xs text-[color:var(--muted)] leading-relaxed">{uc.body}</p>
 
               <div className="flex flex-wrap gap-1.5 mt-auto">
                 {uc.tags.map((tag) => (
@@ -401,14 +401,14 @@ export default function UseCasePage() {
         </div>
       </section>
 
-      <div style={{ borderTop: '1px solid #1A1A1F' }} className="mx-6" />
+      <div style={{ borderTop: '1px solid var(--border-2)' }} className="mx-6" />
 
       {/* ── Supported Formats ── */}
       <section className="px-6 py-16 max-w-6xl mx-auto w-full">
         <div className="flex flex-col gap-3 mb-10">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-600">All file types supported</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--muted)]">All file types supported</p>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight">12 formats in, one format out</h2>
-          <p className="text-sm text-zinc-500 max-w-lg">
+          <p className="text-sm text-[color:var(--muted)] max-w-lg">
             Drag a PDF in. Drag an Excel file in right after. MDify handles the conversion the same way
             regardless of what you feed it. The output is always clean, structured Markdown.
           </p>
@@ -419,14 +419,14 @@ export default function UseCasePage() {
             <div
               key={ft.ext}
               className="flex flex-col items-center gap-2 p-4 rounded-xl text-center transition-all duration-200 hover:translate-y-[-2px]"
-              style={{ background: '#111114', border: '1px solid #1F1F24' }}
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = `${ft.color}30`;
                 e.currentTarget.style.background = `${ft.color}08`;
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#1F1F24';
-                e.currentTarget.style.background = '#111114';
+                e.currentTarget.style.borderColor = 'var(--border)';
+                e.currentTarget.style.background = 'var(--surface)';
               }}
             >
               <span
@@ -435,20 +435,20 @@ export default function UseCasePage() {
               >
                 {ft.ext}
               </span>
-              <span className="text-[10px] text-zinc-600 leading-tight">{ft.desc}</span>
+              <span className="text-[10px] text-[color:var(--muted)] leading-tight">{ft.desc}</span>
             </div>
           ))}
         </div>
       </section>
 
-      <div style={{ borderTop: '1px solid #1A1A1F' }} className="mx-6" />
+      <div style={{ borderTop: '1px solid var(--border-2)' }} className="mx-6" />
 
       {/* ── How it works ── */}
       <section className="px-6 py-16 max-w-6xl mx-auto w-full">
         <div className="flex flex-col gap-3 mb-10">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Workflow</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--muted)]">Workflow</p>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Three steps. No friction.</h2>
-          <p className="text-sm text-zinc-500 max-w-lg">
+          <p className="text-sm text-[color:var(--muted)] max-w-lg">
             No account creation screen. No API key form. No pricing table to scroll past.
             You open the page and start converting.
           </p>
@@ -460,13 +460,13 @@ export default function UseCasePage() {
               {i < STEPS.length - 1 && (
                 <div
                   className="hidden md:block absolute top-8 left-[calc(100%+0.5rem)] w-4 h-px"
-                  style={{ background: '#1F1F24' }}
+                  style={{ background: 'var(--border)' }}
                 />
               )}
               <div
                 className="flex flex-col gap-4 p-5 rounded-xl h-full"
                 style={{
-                  background: '#111114',
+                  background: 'var(--surface)',
                   border: `1px solid ${step.color}20`,
                   boxShadow: `0 0 0 1px ${step.color}08`,
                 }}
@@ -480,27 +480,27 @@ export default function UseCasePage() {
                   </span>
                   <div className="flex-1 h-px" style={{ background: `${step.color}20` }} />
                 </div>
-                <h3 className="text-sm font-semibold text-zinc-100">{step.title}</h3>
-                <p className="text-xs text-zinc-500 leading-relaxed">{step.body}</p>
+                <h3 className="text-sm font-semibold text-[color:var(--text)]">{step.title}</h3>
+                <p className="text-xs text-[color:var(--muted)] leading-relaxed">{step.body}</p>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      <div style={{ borderTop: '1px solid #1A1A1F' }} className="mx-6" />
+      <div style={{ borderTop: '1px solid var(--border-2)' }} className="mx-6" />
 
       {/* ── Under the hood ── */}
       <section className="px-6 py-16 max-w-6xl mx-auto w-full">
         <div className="flex flex-col gap-3 mb-8">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Under the hood</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--muted)]">Under the hood</p>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Two services. Zero complexity for you.</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div
             className="p-5 rounded-xl flex flex-col gap-3"
-            style={{ background: '#111114', border: '1px solid #1F1F24' }}
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
           >
             <div className="flex items-center gap-2">
               <div
@@ -509,7 +509,7 @@ export default function UseCasePage() {
               >
                 ⚡
               </div>
-              <h3 className="text-sm font-semibold text-zinc-100">Frontend</h3>
+              <h3 className="text-sm font-semibold text-[color:var(--text)]">Frontend</h3>
             </div>
             <div className="flex flex-wrap gap-2">
               {['Next.js 14', 'React 18', 'Tailwind CSS'].map((tech) => (
@@ -522,7 +522,7 @@ export default function UseCasePage() {
                 </span>
               ))}
             </div>
-            <p className="text-xs text-zinc-600 leading-relaxed">
+            <p className="text-xs text-[color:var(--muted)] leading-relaxed">
               A single-page app with drag-and-drop upload, real-time conversion status, and a tabbed output
               viewer with syntax highlighting. Dark theme by default because nobody asked for light mode.
             </p>
@@ -530,7 +530,7 @@ export default function UseCasePage() {
 
           <div
             className="p-5 rounded-xl flex flex-col gap-3"
-            style={{ background: '#111114', border: '1px solid #1F1F24' }}
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
           >
             <div className="flex items-center gap-2">
               <div
@@ -539,7 +539,7 @@ export default function UseCasePage() {
               >
                 🐍
               </div>
-              <h3 className="text-sm font-semibold text-zinc-100">Backend</h3>
+              <h3 className="text-sm font-semibold text-[color:var(--text)]">Backend</h3>
             </div>
             <div className="flex flex-wrap gap-2">
               {['Python 3.11', 'FastAPI', 'MarkItDown'].map((tech) => (
@@ -552,7 +552,7 @@ export default function UseCasePage() {
                 </span>
               ))}
             </div>
-            <p className="text-xs text-zinc-600 leading-relaxed">
+            <p className="text-xs text-[color:var(--muted)] leading-relaxed">
               A FastAPI server wrapping Microsoft's MarkItDown library with 110K+ GitHub stars.
               Your file goes in as multipart form data, gets converted, and clean Markdown comes back as JSON.
               Requires Python 3.10+. Runs on Render's free tier.
@@ -571,10 +571,10 @@ export default function UseCasePage() {
             <div
               key={spec.label}
               className="flex flex-col items-center gap-1 py-4 rounded-xl text-center"
-              style={{ background: '#111114', border: `1px solid ${spec.color}15` }}
+              style={{ background: 'var(--surface)', border: `1px solid ${spec.color}15` }}
             >
               <span className="text-xs font-bold" style={{ color: spec.color }}>{spec.value}</span>
-              <span className="text-[10px] text-zinc-600 uppercase tracking-wider">{spec.label}</span>
+              <span className="text-[10px] text-[color:var(--muted)] uppercase tracking-wider">{spec.label}</span>
             </div>
           ))}
         </div>
@@ -594,7 +594,7 @@ export default function UseCasePage() {
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight max-w-md">
           Every file you upload arrives as clean Markdown.
         </h2>
-        <p className="text-sm text-zinc-500 max-w-sm">
+        <p className="text-sm text-[color:var(--muted)] max-w-sm">
           Drop a document in. See the Markdown come out the other side.
           If you don't like it, you lost ten seconds.
         </p>
@@ -613,24 +613,24 @@ export default function UseCasePage() {
       {/* ── Footer ── */}
       <footer
         className="flex items-center justify-between px-6 py-4 border-t flex-wrap gap-3"
-        style={{ borderColor: '#1A1A1F', background: '#08080A' }}
+        style={{ borderColor: 'var(--border-2)', background: 'var(--bg)' }}
       >
-        <div className="flex items-center gap-3 text-[10px] text-zinc-700">
+        <div className="flex items-center gap-3 text-[10px] text-[color:var(--faint)]">
           <span>MDify</span>
-          <span className="text-zinc-800">·</span>
+          <span className="text-[color:var(--faint)]">·</span>
           <a
             href="https://github.com/DevBehindYou"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-amber-500/70 transition-colors"
+            className="hover:text-[color:var(--accent-text)] transition-colors"
           >
             DevBehindYou
           </a>
-          <span className="text-zinc-800">·</span>
+          <span className="text-[color:var(--faint)]">·</span>
           <span>Powered by Microsoft MarkItDown</span>
         </div>
-        <div className="text-[10px] text-zinc-700">
-          <Link href="/" className="hover:text-zinc-400 transition-colors">
+        <div className="text-[10px] text-[color:var(--faint)]">
+          <Link href="/" className="hover:text-[color:var(--muted)] transition-colors">
             ← Back to Converter
           </Link>
         </div>

@@ -51,7 +51,7 @@ const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 function StatusBadge({ status }) {
   const map = {
-    pending:    { dot: 'bg-zinc-600',                     text: 'Pending'     },
+    pending:    { dot: 'bg-[var(--muted)]',                     text: 'Pending'     },
     converting: { dot: 'bg-amber-400 animate-pulse-slow', text: 'Converting…' },
     done:       { dot: 'bg-emerald-500',                  text: 'Done'        },
     error:      { dot: 'bg-red-500',                      text: 'Error'       },
@@ -60,7 +60,7 @@ function StatusBadge({ status }) {
   return (
     <span className="flex items-center gap-1.5">
       <span className={`w-1.5 h-1.5 rounded-full flex-none ${cfg.dot}`} />
-      <span className="text-[10px] text-zinc-500 font-medium">{cfg.text}</span>
+      <span className="text-[10px] text-[color:var(--muted)] font-medium">{cfg.text}</span>
     </span>
   );
 }
@@ -83,7 +83,7 @@ function FileRow({ fileObj, onConvert, onRemove, isActive }) {
       group flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all duration-150 animate-slide-up
       ${isActive
         ? 'bg-amber-500/5 border-amber-500/20'
-        : 'bg-[#111114] border-[#1F1F24] hover:border-[#2A2A30]'
+        : 'bg-[var(--surface)] border-[var(--border)] hover:border-[var(--border-3)]'
       }
     `}>
       {/* File type stripe */}
@@ -94,14 +94,14 @@ function FileRow({ fileObj, onConvert, onRemove, isActive }) {
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-zinc-200 truncate leading-tight">
+        <p className="text-xs font-medium text-[color:var(--text)] truncate leading-tight">
           {fileObj.file.name}
         </p>
         <div className="flex items-center gap-2 mt-1">
           <FileTypePill filename={fileObj.file.name} />
           <StatusBadge status={fileObj.status} />
           {fileObj.status === 'pending' && (
-            <span className="text-[10px] text-zinc-600">{formatSize(fileObj.file.size)}</span>
+            <span className="text-[10px] text-[color:var(--muted)]">{formatSize(fileObj.file.size)}</span>
           )}
           {fileObj.status === 'error' && fileObj.errorMsg && (
             <span className="text-[10px] text-red-400 truncate max-w-[120px]" title={fileObj.errorMsg}>
@@ -116,14 +116,14 @@ function FileRow({ fileObj, onConvert, onRemove, isActive }) {
         {fileObj.status === 'pending' && (
           <button
             onClick={() => onConvert(fileObj)}
-            className="text-[10px] font-medium px-2 py-1 rounded-md text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 transition-colors"
+            className="text-[10px] font-medium px-2 py-1 rounded-md text-[color:var(--accent-text)] bg-amber-400/10 hover:bg-amber-400/20 transition-colors"
           >
             Convert
           </button>
         )}
         <button
           onClick={() => onRemove(fileObj.id)}
-          className="w-6 h-6 flex items-center justify-center rounded-md text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800 transition-colors text-base leading-none"
+          className="w-6 h-6 flex items-center justify-center rounded-md text-[color:var(--muted)] hover:text-[color:var(--muted)] hover:bg-[color:var(--surface-2)] transition-colors text-base leading-none"
           title="Remove"
         >
           ×
@@ -135,18 +135,18 @@ function FileRow({ fileObj, onConvert, onRemove, isActive }) {
 
 function EmptyOutput() {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center text-center gap-3 rounded-xl border border-dashed border-[#1F1F24]">
+    <div className="flex-1 flex flex-col items-center justify-center text-center gap-3 rounded-xl border border-dashed border-[var(--border)]">
       <div className="relative">
-        <div className="w-14 h-14 rounded-2xl bg-[#111114] border border-[#1F1F24] flex items-center justify-center text-2xl">
+        <div className="w-14 h-14 rounded-2xl bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-2xl">
           <span style={{ fontFamily: 'monospace' }}>#</span>
         </div>
-        <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-[10px] text-amber-400">
+        <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-[10px] text-[color:var(--accent-text)]">
           ↓
         </div>
       </div>
       <div>
-        <p className="text-sm font-medium text-zinc-500">No output yet</p>
-        <p className="text-xs text-zinc-700 mt-0.5">Converted Markdown will appear here</p>
+        <p className="text-sm font-medium text-[color:var(--muted)]">No output yet</p>
+        <p className="text-xs text-[color:var(--faint)] mt-0.5">Converted Markdown will appear here</p>
       </div>
     </div>
   );
@@ -160,33 +160,33 @@ function HighlightedMarkdown({ content }) {
       {lines.map((line, i) => {
         if (/^#{1,6}\s/.test(line)) {
           return (
-            <span key={i} className="block text-amber-400/90 font-medium">
+            <span key={i} className="block text-[color:var(--md-h)] font-medium">
               {line}{'\n'}
             </span>
           );
         }
         if (/^[-*]{3,}$/.test(line.trim())) {
           return (
-            <span key={i} className="block border-b border-zinc-800 my-1">
+            <span key={i} className="block border-b border-[color:var(--border-3)] my-1">
               {'\n'}
             </span>
           );
         }
         if (/^```/.test(line) || /^    /.test(line)) {
           return (
-            <span key={i} className="block text-violet-400/80">
+            <span key={i} className="block text-[color:var(--md-code)]">
               {line}{'\n'}
             </span>
           );
         }
         if (/^\s*[-*+]\s/.test(line) || /^\s*\d+\.\s/.test(line)) {
           return (
-            <span key={i} className="block text-sky-300/70">
+            <span key={i} className="block text-[color:var(--md-list)]">
               {line}{'\n'}
             </span>
           );
         }
-        return <span key={i} className="block text-zinc-400">{line}{'\n'}</span>;
+        return <span key={i} className="block text-[color:var(--muted)]">{line}{'\n'}</span>;
       })}
     </pre>
   );
@@ -204,6 +204,16 @@ export default function Home() {
   const [copied, setCopied]             = useState(false);
   const [logoHover, setLogoHover]       = useState(false);
   const [wakeCountdown, setWakeCountdown] = useState(null); // null = not counting
+  const [theme, setTheme]               = useState('dark');
+
+  // ── Theme (dark default, persisted). Init from the attribute set pre-paint.
+  useEffect(() => { setTheme(document.documentElement.dataset.theme || 'dark'); }, []);
+  const toggleTheme = useCallback(() => {
+    const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('mdify-theme', next); } catch (e) { /* ignore */ }
+    setTheme(next);
+  }, []);
 
   const fileInputRef    = useRef(null);
   const convertingIds   = useRef(new Set());
@@ -422,11 +432,11 @@ export default function Home() {
   return (
     <div
       className="h-screen flex flex-col overflow-hidden"
-      style={{ background: '#08080A', color: '#ECECF1', fontFamily: 'Inter, sans-serif' }}
+      style={{ background: 'var(--bg)', color: 'var(--text)', fontFamily: 'Inter, sans-serif' }}
     >
       {/* ── Header ── */}
       <header className="flex-none flex items-center justify-between px-5 py-3 border-b"
-        style={{ borderColor: '#1A1A1F' }}>
+        style={{ borderColor: 'var(--border-2)' }}>
         <div className="flex items-center gap-3">
           {/* Logo mark + hover popup */}
           <div
@@ -447,8 +457,8 @@ export default function Home() {
               <div
                 className="absolute top-full left-0 mt-2 z-50 rounded-xl p-4 flex flex-col gap-3 w-56"
                 style={{
-                  background: '#111114',
-                  border: '1px solid #2A2A30',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border-3)',
                   boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(245,158,11,0.08)',
                   animation: 'slideUp 0.15s ease-out forwards',
                 }}
@@ -462,40 +472,40 @@ export default function Home() {
                     style={{ boxShadow: '0 0 8px rgba(0,0,0,0.5)' }}
                   />
                   <div>
-                    <p className="text-sm font-semibold text-zinc-100 leading-tight">MDify</p>
-                    <p className="text-[10px] text-zinc-500 leading-tight">Document → Markdown</p>
+                    <p className="text-sm font-semibold text-[color:var(--text)] leading-tight">MDify</p>
+                    <p className="text-[10px] text-[color:var(--muted)] leading-tight">Document → Markdown</p>
                   </div>
                 </div>
 
                 {/* Divider */}
-                <div style={{ borderTop: '1px solid #1F1F24' }} />
+                <div style={{ borderTop: '1px solid var(--border)' }} />
 
                 {/* Dev info */}
                 <div className="flex flex-col gap-1.5">
-                  <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-semibold">Developer</p>
+                  <p className="text-[10px] text-[color:var(--muted)] uppercase tracking-widest font-semibold">Developer</p>
                   <a
                     href="https://github.com/DevBehindYou"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 group/link"
                   >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" className="text-zinc-500 group-hover/link:text-amber-400 transition-colors flex-none">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" className="text-[color:var(--muted)] group-hover/link:text-[color:var(--accent-text)] transition-colors flex-none">
                       <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
                     </svg>
-                    <span className="text-xs text-zinc-400 group-hover/link:text-amber-400 transition-colors font-medium">DevBehindYou</span>
+                    <span className="text-xs text-[color:var(--muted)] group-hover/link:text-[color:var(--accent-text)] transition-colors font-medium">DevBehindYou</span>
                   </a>
                 </div>
 
                 {/* Divider */}
-                <div style={{ borderTop: '1px solid #1F1F24' }} />
+                <div style={{ borderTop: '1px solid var(--border)' }} />
 
                 {/* Why Use It */}
                 <Link
                   href="/usecase"
                   className="flex items-center justify-between group/usecase"
                 >
-                  <span className="text-xs text-zinc-400 group-hover/usecase:text-amber-400 transition-colors font-medium">Why Use It?</span>
-                  <span className="text-[10px] text-zinc-600 group-hover/usecase:text-amber-500 transition-colors">→</span>
+                  <span className="text-xs text-[color:var(--muted)] group-hover/usecase:text-[color:var(--accent-text)] transition-colors font-medium">Why Use It?</span>
+                  <span className="text-[10px] text-[color:var(--muted)] group-hover/usecase:text-[color:var(--accent-text)] transition-colors">→</span>
                 </Link>
               </div>
             )}
@@ -508,12 +518,26 @@ export default function Home() {
             onMouseLeave={() => setLogoHover(false)}
           >
             <h1 className="text-sm font-semibold leading-tight tracking-tight">MDify</h1>
-            <p className="text-[10px] text-zinc-600 leading-tight">by DevBehindYou · powered by MarkItDown</p>
+            <p className="text-[10px] text-[color:var(--muted)] leading-tight">by DevBehindYou · powered by MarkItDown</p>
           </div>
         </div>
 
         {/* Right side */}
         <div className="flex items-center gap-4">
+          {/* Theme toggle (dark / light) */}
+          <button
+            onClick={toggleTheme}
+            className="w-7 h-7 flex items-center justify-center rounded-md text-[color:var(--muted)] hover:text-[color:var(--text)] hover:bg-[color:var(--surface-2)] transition-colors"
+            aria-label="Toggle dark and light theme"
+            title={theme === 'light' ? 'Switch to dark' : 'Switch to light'}
+          >
+            {theme === 'light' ? (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+            ) : (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            )}
+          </button>
+
           {/* Server status */}
           <button
             onClick={async () => {
@@ -539,7 +563,7 @@ export default function Home() {
                 ? 'bg-amber-400 animate-pulse-slow'
                 : 'bg-red-500'
             }`} />
-            <span className="text-zinc-500">
+            <span className="text-[color:var(--muted)]">
               {serverStatus === 'online'
                 ? 'Backend ready'
                 : wakeCountdown !== null && wakeCountdown > 0
@@ -551,7 +575,7 @@ export default function Home() {
           </button>
 
           {/* Slot counter */}
-          <div className="flex items-center gap-1 text-[11px] text-zinc-600">
+          <div className="flex items-center gap-1 text-[11px] text-[color:var(--muted)]">
             <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>
               {files.length}/{MAX_FILES}
             </span>
@@ -564,17 +588,17 @@ export default function Home() {
       <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
 
         {/* ─────── LEFT: INPUT PANEL ─────── */}
-        <div className="md:w-[44%] w-full flex flex-col p-3 md:p-4 gap-3 min-h-0 min-w-0 h-[46vh] md:h-auto border-b md:border-b-0 md:border-r" style={{ borderColor: '#1A1A1F' }}>
+        <div className="md:w-[44%] w-full flex flex-col p-3 md:p-4 gap-3 min-h-0 min-w-0 h-[46vh] md:h-auto border-b md:border-b-0 md:border-r" style={{ borderColor: 'var(--border-2)' }}>
 
           {/* Panel label */}
           <div className="flex items-center justify-between flex-none">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-600">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--muted)]">
               Input
             </span>
             {files.length > 0 && (
               <button
                 onClick={clearAll}
-                className="text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors"
+                className="text-[11px] text-[color:var(--muted)] hover:text-[color:var(--muted)] transition-colors"
               >
                 Clear all
               </button>
@@ -593,7 +617,7 @@ export default function Home() {
               ${isFull ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
               ${dragActive
                 ? 'border-amber-500 drop-shimmer'
-                : 'border-[#1F1F24] hover:border-[#2A2A32]'
+                : 'border-[var(--border)] hover:border-[var(--border-3)]'
               }
             `}
             style={dragActive ? { borderColor: '#F59E0B', background: 'rgba(245,158,11,0.04)' } : {}}
@@ -619,14 +643,14 @@ export default function Home() {
               <div className="flex flex-col items-center gap-2">
                 <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold mb-0.5"
-                  style={{ background: '#16161A', border: '1px solid #2A2A30' }}
+                  style={{ background: 'var(--surface-2)', border: '1px solid var(--border-3)' }}
                 >
                   ↑
                 </div>
-                <p className="text-sm font-medium text-zinc-300">
+                <p className="text-sm font-medium text-[color:var(--text)]">
                   {isFull ? 'File limit reached (10)' : 'Drop files or click to browse'}
                 </p>
-                <p className="text-[11px] text-zinc-600">
+                <p className="text-[11px] text-[color:var(--muted)]">
                   PDF · Word · Excel · PowerPoint · HTML · CSV · JSON · ePub · Audio · Image
                 </p>
               </div>
@@ -637,8 +661,8 @@ export default function Home() {
           <div className="flex-1 overflow-y-auto space-y-1.5 min-h-0 pr-0.5">
             {files.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-2 py-8">
-                <p className="text-xs text-zinc-700">No files added yet</p>
-                <p className="text-[10px] text-zinc-800">Supports up to 10 documents at a time</p>
+                <p className="text-xs text-[color:var(--faint)]">No files added yet</p>
+                <p className="text-[10px] text-[color:var(--faint)]">Supports up to 10 documents at a time</p>
               </div>
             ) : (
               files.map((fileObj) => (
@@ -663,7 +687,7 @@ export default function Home() {
                   flex-1 py-2.5 px-4 rounded-xl text-xs font-semibold transition-all duration-150
                   ${pendingCount > 0 && !converting
                     ? 'text-black'
-                    : 'text-zinc-600 cursor-not-allowed'
+                    : 'text-[color:var(--muted)] cursor-not-allowed'
                   }
                 `}
                 style={
@@ -672,7 +696,7 @@ export default function Home() {
                         background: 'linear-gradient(135deg, #F59E0B, #D97706)',
                         boxShadow: '0 0 20px rgba(245,158,11,0.2)',
                       }
-                    : { background: '#16161A', border: '1px solid #1F1F24' }
+                    : { background: 'var(--surface-2)', border: '1px solid var(--border)' }
                 }
               >
                 {hasAnyConverting
@@ -686,8 +710,8 @@ export default function Home() {
               {results.length > 0 && (
                 <button
                   onClick={downloadAll}
-                  className="py-2.5 px-3 rounded-xl text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-colors"
-                  style={{ background: '#16161A', border: '1px solid #1F1F24' }}
+                  className="py-2.5 px-3 rounded-xl text-xs font-medium text-[color:var(--muted)] hover:text-[color:var(--text)] transition-colors"
+                  style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
                   title="Download all .md files"
                 >
                   ↓ All
@@ -702,10 +726,10 @@ export default function Home() {
 
           {/* Panel label */}
           <div className="flex items-center justify-between flex-none">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-600">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--muted)]">
               Output
             </span>
-            <span className="text-[10px] text-zinc-700">
+            <span className="text-[10px] text-[color:var(--faint)]">
               {results.length > 0 ? `${results.length} file${results.length !== 1 ? 's' : ''} converted` : ''}
             </span>
           </div>
@@ -717,7 +741,7 @@ export default function Home() {
               style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.18)' }}
             >
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-zinc-600">
+                <span className="text-[10px] text-[color:var(--muted)]">
                   {results.length} files ready to download
                 </span>
               </div>
@@ -748,14 +772,14 @@ export default function Home() {
                       flex-none text-[11px] font-medium px-2.5 py-1 rounded-lg
                       transition-all duration-150 max-w-[160px] md:max-w-[200px]
                       ${activeResult === i
-                        ? 'text-amber-400'
-                        : 'text-zinc-600 hover:text-zinc-400'
+                        ? 'text-[color:var(--accent-text)]'
+                        : 'text-[color:var(--muted)] hover:text-[color:var(--muted)]'
                       }
                     `}
                     style={
                       activeResult === i
                         ? { background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }
-                        : { background: '#111114', border: '1px solid #1F1F24' }
+                        : { background: 'var(--surface)', border: '1px solid var(--border)' }
                     }
                   >
                     <span className="block truncate">{result.filename}</span>
@@ -772,16 +796,16 @@ export default function Home() {
                     {/* Meta info */}
                     <div className="flex items-center gap-2 min-w-0 overflow-hidden">
                       <span
-                        className="text-[10px] font-mono text-zinc-500 px-2 py-0.5 rounded-md truncate max-w-[140px] md:max-w-[260px]"
-                        style={{ background: '#16161A', border: '1px solid #1F1F24' }}
+                        className="text-[10px] font-mono text-[color:var(--muted)] px-2 py-0.5 rounded-md truncate max-w-[140px] md:max-w-[260px]"
+                        style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
                         title={currentResult.filename}
                       >
                         {currentResult.filename}
                       </span>
-                      <span className="text-[10px] text-zinc-700 hidden sm:inline whitespace-nowrap">
+                      <span className="text-[10px] text-[color:var(--faint)] hidden sm:inline whitespace-nowrap">
                         {currentResult.word_count?.toLocaleString()} words
                       </span>
-                      <span className="text-[10px] text-zinc-700 hidden sm:inline whitespace-nowrap">
+                      <span className="text-[10px] text-[color:var(--faint)] hidden sm:inline whitespace-nowrap">
                         {currentResult.char_count?.toLocaleString()} chars
                       </span>
                     </div>
@@ -790,8 +814,8 @@ export default function Home() {
                     <div className="flex items-center gap-1.5 flex-none">
                       <button
                         onClick={copyToClipboard}
-                        className="text-[11px] px-2.5 py-1 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"
-                        style={{ background: '#16161A', border: '1px solid #1F1F24' }}
+                        className="text-[11px] px-2.5 py-1 rounded-lg text-[color:var(--muted)] hover:text-[color:var(--text)] transition-colors"
+                        style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
                       >
                         {copied ? '✓ Copied' : 'Copy'}
                       </button>
@@ -816,16 +840,16 @@ export default function Home() {
                     ref={outputScrollRef}
                     className="flex-1 overflow-y-auto rounded-xl min-h-0"
                     style={{
-                      background: '#0C0C0F',
-                      border: '1px solid #1A1A1F',
+                      background: 'var(--panel)',
+                      border: '1px solid var(--border-2)',
                     }}
                   >
                     {/* Viewer header bar */}
                     <div
                       className="sticky top-0 z-10 flex items-center justify-between px-4 py-2"
                       style={{
-                        background: '#0C0C0F',
-                        borderBottom: '1px solid #1A1A1F',
+                        background: 'var(--panel)',
+                        borderBottom: '1px solid var(--border-2)',
                       }}
                     >
                       <div className="flex items-center gap-2">
@@ -835,13 +859,13 @@ export default function Home() {
                           <span className="w-2 h-2 rounded-full bg-emerald-500/50" />
                         </div>
                         <span
-                          className="text-[10px] text-zinc-600 uppercase tracking-widest"
+                          className="text-[10px] text-[color:var(--muted)] uppercase tracking-widest"
                           style={{ fontFamily: 'JetBrains Mono, monospace' }}
                         >
                           markdown
                         </span>
                       </div>
-                      <span className="text-[10px] text-zinc-700">
+                      <span className="text-[10px] text-[color:var(--faint)]">
                         {currentResult.original_name} → {currentResult.filename}
                       </span>
                     </div>
@@ -859,23 +883,23 @@ export default function Home() {
       {/* ── Footer status bar ── */}
       <div
         className="flex-none flex items-center justify-between px-5 py-2 border-t"
-        style={{ borderColor: '#1A1A1F', background: '#08080A' }}
+        style={{ borderColor: 'var(--border-2)', background: 'var(--bg)' }}
       >
-        <div className="flex items-center gap-3 text-[10px] text-zinc-700">
+        <div className="flex items-center gap-3 text-[10px] text-[color:var(--faint)]">
           <span>MDify</span>
-          <span className="text-zinc-800">·</span>
+          <span className="text-[color:var(--faint)]">·</span>
           <a
             href="https://github.com/DevBehindYou"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-amber-500/70 transition-colors"
+            className="hover:text-[color:var(--accent-text)] transition-colors"
           >
             DevBehindYou
           </a>
-          <span className="text-zinc-800">·</span>
+          <span className="text-[color:var(--faint)]">·</span>
           <span>Powered by MarkItDown</span>
         </div>
-        <div className="flex items-center gap-3 text-[10px] text-zinc-700">
+        <div className="flex items-center gap-3 text-[10px] text-[color:var(--faint)]">
           {doneCount > 0 && (
             <span className="text-emerald-500/70">{doneCount} file{doneCount !== 1 ? 's' : ''} converted</span>
           )}

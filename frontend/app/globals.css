@@ -2,6 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Theme tokens ─────────────────────────────────────────────────────────
+   Dark is the default (also applied pre-hydration via bare :root). Light is
+   the former "MDify Lite" palette, now a toggle. */
+:root,
+:root[data-theme="dark"] {
+  --bg: #08080a;
+  --surface: #111114;
+  --surface-2: #16161a;
+  --panel: #0c0c0f;
+  --border: #1f1f24;
+  --border-2: #1a1a1f;
+  --border-3: #2a2a30;
+  --text: #ececf1;
+  --muted: #a1a1aa;
+  --faint: #71717a;
+  --accent: #f59e0b;
+  --accent-text: #f59e0b;
+  --md-body: #b4b4c0;
+  --md-h: #f59e0b;
+  --md-code: #a78bfa;
+  --md-list: #7dd3fc;
+  --scrollbar: #2a2a2f;
+  --scrollbar-hover: #3a3a40;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #f7f2ea;
+  --surface: #fffcf7;
+  --surface-2: #ede8df;
+  --panel: #ffffff;
+  --border: #e2e8f0;
+  --border-2: #ede8df;
+  --border-3: #cbd5e1;
+  --text: #18181b;
+  --muted: #52525b;
+  --faint: #94a3b8;
+  --accent: #f59e0b;
+  --accent-text: #b45309;
+  --md-body: #3f3f46;
+  --md-h: #b45309;
+  --md-code: #6d28d9;
+  --md-list: #0369a1;
+  --scrollbar: #cbd5e1;
+  --scrollbar-hover: #94a3b8;
+  color-scheme: light;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -11,11 +59,12 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
-  background-color: #08080a;
-  color: #ececf1;
+  background-color: var(--bg);
+  color: var(--text);
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.35s ease, color 0.25s ease;
 }
 
 /* Custom scrollbar */
@@ -29,18 +78,18 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2a2a2f;
+  background: var(--scrollbar);
   border-radius: 100px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a3a40;
+  background: var(--scrollbar-hover);
 }
 
 /* Selection */
 ::selection {
   background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
+  color: var(--accent);
 }
 
 /* Drag overlay shimmer */
@@ -96,20 +145,20 @@ body {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 11.5px;
   line-height: 1.7;
-  color: #b4b4c0;
+  color: var(--md-body);
   white-space: pre-wrap;
   word-break: break-word;
 }
 
 .markdown-pre .md-heading {
-  color: #f59e0b;
+  color: var(--md-h);
   font-weight: 500;
 }
 
 .markdown-pre .md-link {
-  color: #60a5fa;
+  color: var(--md-list);
 }
 
 .markdown-pre .md-code {
-  color: #a78bfa;
+  color: var(--md-code);
 }
