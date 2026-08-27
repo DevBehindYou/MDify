@@ -1,12 +1,12 @@
 'use client';
 
-// Mini-Frame promo (liquid glass) pointing legacy MDify users at MDify Pro.
+// Mini-Frame promo (liquid glass) pointing legacy MDify users at MarkDify.
 // Bottom-left, appears after 5s. Reappears on every reload (dismissal is not
 // persisted), so a page refresh shows it again.
 
 import { useEffect, useState } from 'react';
 
-const PRO_URL = 'https://mdify-pro-app.vercel.app';
+const PRO_URL = 'https://www.markdify.com';
 
 export default function MdifyProPopup() {
   const [mounted, setMounted] = useState(false);
@@ -24,20 +24,20 @@ export default function MdifyProPopup() {
 
   return (
     <>
-      <div className={`mpp${shown ? ' mpp-show' : ''}`} role="dialog" aria-label="MDify Pro announcement">
+      <div className={`mpp${shown ? ' mpp-show' : ''}`} role="dialog" aria-label="MarkDify announcement">
         <button className="mpp-close" onClick={dismiss} aria-label="Dismiss">×</button>
         <div className="mpp-head">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="mpp-mark" src="/mdify-icon.png" alt="MDify Pro" width="20" height="20" />
-          <span className="mpp-name">MDify Pro</span>
+          <img className="mpp-mark" src="/mdify-icon.png" alt="MarkDify" width="20" height="20" />
+          <span className="mpp-name">MarkDify</span>
         </div>
         <div className="mpp-card">
           <p className="mpp-copy">
-            <strong>New MDify Pro version is live.</strong> Faster conversion, RAG-ready profiles, batch export.
+            <strong>New MarkDify version is live.</strong> Faster conversion, RAG-ready profiles, batch export.
           </p>
           <a className="mpp-cta" href={PRO_URL} target="_blank" rel="noopener noreferrer">
             <span className="mpp-label">Try it now</span>
-            <span className="mpp-title">Open MDify Pro →</span>
+            <span className="mpp-title">Open MarkDify →</span>
           </a>
         </div>
       </div>
