@@ -1,0 +1,408 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Theme tokens ─────────────────────────────────────────────────────────
+   Dark is the default (also applied pre-hydration via bare :root). Light is
+   the former "MDify Lite" palette, now a toggle. */
+:root,
+:root[data-theme="dark"] {
+  --bg: #08080a;
+  --surface: #111114;
+  --surface-2: #16161a;
+  --panel: #0c0c0f;
+  --border: #1f1f24;
+  --border-2: #1a1a1f;
+  --border-3: #2a2a30;
+  --text: #f2f2f6;
+  --muted: #c2c2cc;
+  --faint: #9494a0;
+  --accent: #f59e0b;
+  --accent-text: #f59e0b;
+  --md-body: #b4b4c0;
+  --md-h: #f59e0b;
+  --md-code: #a78bfa;
+  --md-list: #7dd3fc;
+  --scrollbar: #2a2a2f;
+  --scrollbar-hover: #3a3a40;
+  --aurora-hatch-1: #101014;
+  --aurora-hatch-2: #16161c;
+  --lens-bg: rgba(42, 120, 214, 0.22);
+  --lens-border: #3b82f6;
+  --wf-border: #2a2a32;
+  --wf-card-bg: #111115;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #f0eee9;
+  --surface: #ffffff;
+  --surface-2: #f5f3ee;
+  --panel: #ffffff;
+  --border: #e2e8f0;
+  --border-2: #ede8df;
+  --border-3: #cbd5e1;
+  --text: #18181b;
+  --muted: #52525b;
+  --faint: #64748b;
+  --accent: #f59e0b;
+  --accent-text: #b45309;
+  --md-body: #3f3f46;
+  --md-h: #b45309;
+  --md-code: #6d28d9;
+  --md-list: #0369a1;
+  --scrollbar: #cbd5e1;
+  --scrollbar-hover: #94a3b8;
+  --aurora-hatch-1: #fbfbfb;
+  --aurora-hatch-2: #ffffff;
+  --lens-bg: #eef3fb;
+  --lens-border: #2a78d6;
+  --wf-border: #1a1a1a;
+  --wf-card-bg: #ffffff;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.35s ease, color 0.25s ease;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
+}
+
+/* Selection */
+::selection {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--accent);
+}
+
+/* Drag overlay shimmer */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.drop-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(245, 158, 11, 0) 0%,
+    rgba(245, 158, 11, 0.05) 50%,
+    rgba(245, 158, 11, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Spin for loading state */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+/* Fade-in for list items */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.18s ease-out forwards;
+}
+
+/* Glow for accent elements */
+.accent-glow {
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
+}
+
+/* Code / markdown output styling */
+.markdown-pre {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--md-body);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.markdown-pre .md-heading {
+  color: var(--md-h);
+  font-weight: 500;
+}
+
+.markdown-pre .md-link {
+  color: var(--md-list);
+}
+
+.markdown-pre .md-code {
+  color: var(--md-code);
+}
+
+/* ── MDify Wireframe & Aurora Glass Utilities ────────────────────────── */
+.font-wireframe {
+  font-family: 'Patrick Hand', ui-rounded, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.font-tech {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'JetBrains Mono', monospace;
+}
+
+.bg-wireframe-hatch {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--aurora-hatch-1) 0 8px,
+    var(--aurora-hatch-2) 8px 16px
+  );
+}
+
+.aurora-hairline {
+  height: 2.5px;
+  background: linear-gradient(90deg, #8f83d8, #b58fd0, #d98fb0);
+}
+
+.aurora-btn {
+  background: linear-gradient(90deg, #cfc8ef, #eec9d6);
+  border: 1.5px solid #b6ade0;
+  color: #1a1a1a;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+
+.aurora-btn:hover:not(:disabled) {
+  filter: brightness(0.96);
+  transform: translateY(-0.5px);
+}
+
+.aurora-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.aurora-blob {
+  background: linear-gradient(135deg, #d3ccf0, #eec9d6);
+}
+
+.lens-active {
+  background: var(--lens-bg);
+  border: 1.5px solid var(--lens-border);
+}
+
+/* Safe zone for mobile floating dock */
+.dock-safe-padding {
+  padding-bottom: 190px;
+}
+
+/* ── Shimmer Loading Animation for Skeletons ────────────────────────── */
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.animate-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmer-sweep 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+[data-theme="light"] .animate-shimmer::after {
+  background-image: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0.02) 25%,
+    rgba(0, 0, 0, 0.05) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+/* ── Prism Syntax Highlighting Theme (Light & Dark) ─────────────────── */
+.prism-code-block {
+  tab-size: 2;
+  -moz-tab-size: 2;
+}
+
+.prism-code-block pre {
+  margin: 0;
+  tab-size: 2;
+}
+
+/* Light Theme Prism Tokens */
+[data-theme="light"] .token.comment,
+[data-theme="light"] .token.prolog,
+[data-theme="light"] .token.doctype,
+[data-theme="light"] .token.cdata {
+  color: #64748b;
+  font-style: italic;
+}
+
+[data-theme="light"] .token.punctuation {
+  color: #475569;
+}
+
+[data-theme="light"] .token.property,
+[data-theme="light"] .token.tag,
+[data-theme="light"] .token.constant,
+[data-theme="light"] .token.symbol,
+[data-theme="light"] .token.deleted {
+  color: #be185d;
+}
+
+[data-theme="light"] .token.boolean,
+[data-theme="light"] .token.number {
+  color: #b45309;
+  font-weight: 500;
+}
+
+[data-theme="light"] .token.selector,
+[data-theme="light"] .token.attr-name,
+[data-theme="light"] .token.string,
+[data-theme="light"] .token.char,
+[data-theme="light"] .token.builtin,
+[data-theme="light"] .token.inserted {
+  color: #047857;
+}
+
+[data-theme="light"] .token.operator,
+[data-theme="light"] .token.entity,
+[data-theme="light"] .token.url {
+  color: #4338ca;
+}
+
+[data-theme="light"] .token.atrule,
+[data-theme="light"] .token.attr-value,
+[data-theme="light"] .token.keyword {
+  color: #7c3aed;
+  font-weight: 600;
+}
+
+[data-theme="light"] .token.function,
+[data-theme="light"] .token.class-name {
+  color: #0284c7;
+  font-weight: 500;
+}
+
+[data-theme="light"] .token.regex,
+[data-theme="light"] .token.important,
+[data-theme="light"] .token.variable,
+[data-theme="light"] .token.parameter {
+  color: #d97706;
+}
+
+/* Dark Theme Prism Tokens */
+[data-theme="dark"] .token.comment,
+[data-theme="dark"] .token.prolog,
+[data-theme="dark"] .token.doctype,
+[data-theme="dark"] .token.cdata {
+  color: #71717a;
+  font-style: italic;
+}
+
+[data-theme="dark"] .token.punctuation {
+  color: #a1a1aa;
+}
+
+[data-theme="dark"] .token.property,
+[data-theme="dark"] .token.tag,
+[data-theme="dark"] .token.constant,
+[data-theme="dark"] .token.symbol,
+[data-theme="dark"] .token.deleted {
+  color: #f472b6;
+}
+
+[data-theme="dark"] .token.boolean,
+[data-theme="dark"] .token.number {
+  color: #fbbf24;
+  font-weight: 500;
+}
+
+[data-theme="dark"] .token.selector,
+[data-theme="dark"] .token.attr-name,
+[data-theme="dark"] .token.string,
+[data-theme="dark"] .token.char,
+[data-theme="dark"] .token.builtin,
+[data-theme="dark"] .token.inserted {
+  color: #86efac;
+}
+
+[data-theme="dark"] .token.operator,
+[data-theme="dark"] .token.entity,
+[data-theme="dark"] .token.url {
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .token.atrule,
+[data-theme="dark"] .token.attr-value,
+[data-theme="dark"] .token.keyword {
+  color: #c084fc;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .token.function,
+[data-theme="dark"] .token.class-name {
+  color: #38bdf8;
+  font-weight: 500;
+}
+
+[data-theme="dark"] .token.regex,
+[data-theme="dark"] .token.important,
+[data-theme="dark"] .token.variable,
+[data-theme="dark"] .token.parameter {
+  color: #fcd34d;
+}
+

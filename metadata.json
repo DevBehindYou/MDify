@@ -1,0 +1,6 @@
+{
+  "name": "MDify",
+  "description": "Turn any document into clean Markdown for AI, RAG, and docs with recent conversion session history, real-time output character/word count status bar, and Aurora Glass UI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,5 +1,4 @@
 import './globals.css';
-import { Analytics } from '@vercel/analytics/next';
 import MdifyProPopup from './MdifyProPopup';
 
 const BASE_URL = 'https://mdify-app.onrender.com';
@@ -13,7 +12,7 @@ export const metadata = {
     template: '%s | MDify',
   },
   description:
-    'Convert PDF, Word, Excel, PowerPoint, HTML, CSV, JSON and more to clean Markdown in seconds. Cut LLM token costs by up to 70%. Powered by Microsoft MarkItDown (110K+ ★). Free, open source, no sign-up.',
+    'Turn any document into clean Markdown. PDF, Word, PowerPoint, Excel, HTML, and images → structured Markdown built for AI, RAG, and docs. Powered by Microsoft MarkItDown.',
   keywords: [
     'markdown converter',
     'PDF to markdown',
@@ -109,14 +108,13 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
           rel="stylesheet"
         />
       </head>
       <body className="h-full">
         {children}
         <MdifyProPopup />
-        <Analytics />
       </body>
     </html>
   );
