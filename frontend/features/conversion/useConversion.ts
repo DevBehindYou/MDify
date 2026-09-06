@@ -8,7 +8,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { convertFile } from '@/lib/api/client';
 import { ApiError } from '@/lib/errors';
-import { DEFAULT_PROFILE, MAX_FILES, uid } from '@/lib/config';
+import { DEFAULT_PROFILE, MAX_FILES, MAX_PARALLEL_CONVERSIONS, uid } from '@/lib/config';
 import type { FileItem, ProfileId, ResultItem } from '@/types';
 
 export interface ConversionVM {
@@ -46,6 +46,9 @@ export function useConversion(): ConversionVM {
 
   // Guards against double-converting the same file across rapid clicks.
   const inFlight = useRef<Set<string>>(new Set());
+  // Guards convertAll itself; two rapid "Convert all" clicks must not create
+  // overlapping pools that compete for the same pending items.
+  const batchInFlight = useRef(false);
   // Ref keeps convertOne/convertAll callbacks stable while reading live profile.
   const profileRef = useRef<ProfileId>(DEFAULT_PROFILE);
   const setProfile = useCallback((p: ProfileId) => {
@@ -101,17 +104,25 @@ export function useConversion(): ConversionVM {
     [patch],
   );
 
-  // Sequential by design: protects free-tier backend memory (parallel batch
-  // is a Phase 2 feature, guarded by a bounded worker pool).
+  // Use a small bounded client-side worker pool. This gives users real
+  // parallel conversion while the backend independently enforces its own
+  // per-process concurrency cap.
   const convertAll = useCallback(async () => {
+    if (batchInFlight.current) return;
     const pending = files.filter((f) => f.status === 'pending');
     if (pending.length === 0) return;
+
+    batchInFlight.current = true;
     setConverting(true);
-    for (const item of pending) {
-      await convertOne(item);
-      await new Promise((r) => setTimeout(r, 300));
+    try {
+      for (let i = 0; i < pending.length; i += MAX_PARALLEL_CONVERSIONS) {
+        const batch = pending.slice(i, i + MAX_PARALLEL_CONVERSIONS);
+        await Promise.all(batch.map((item) => convertOne(item)));
+      }
+    } finally {
+      batchInFlight.current = false;
+      setConverting(false);
     }
-    setConverting(false);
   }, [files, convertOne]);
 
   const removeFile = useCallback((id: string) => {
