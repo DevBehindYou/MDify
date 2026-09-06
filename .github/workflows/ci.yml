@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, mdify-pro-rebuild]
   pull_request:
-    branches: [main]
+    branches: [main, mdify-pro-rebuild]
 
 jobs:
   backend:
