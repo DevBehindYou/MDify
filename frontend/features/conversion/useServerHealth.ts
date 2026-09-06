@@ -25,6 +25,11 @@ export function useServerHealth(): ServerHealthVM {
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = null;
+  }, []);
+
   const startCountdown = useCallback(() => {
     if (countdownRef.current) return;
     setCountdown(WAKE_SECONDS);
@@ -52,11 +57,17 @@ export function useServerHealth(): ServerHealthVM {
     if (ok) {
       setStatus('online');
       stopCountdown();
+      stopPolling();
     } else {
       setStatus('starting');
       startCountdown();
     }
-  }, [startCountdown, stopCountdown]);
+  }, [startCountdown, stopCountdown, stopPolling]);
+
+  const startPolling = useCallback(() => {
+    stopPolling();
+    pollRef.current = setInterval(() => void probe(), POLL_MS);
+  }, [probe, stopPolling]);
 
   const retry = useCallback(() => {
     setStatus('checking');
@@ -64,14 +75,16 @@ export function useServerHealth(): ServerHealthVM {
     startCountdown();
     wakeBackend();
     void probe();
-  }, [probe, startCountdown, stopCountdown]);
+    startPolling();
+  }, [probe, startPolling, stopCountdown]);
 
   useEffect(() => {
     wakeBackend(); // trigger cold start immediately
     void probe();
-    pollRef.current = setInterval(() => void probe(), POLL_MS);
+    startPolling();
+
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      stopPolling();
       if (countdownRef.current) clearInterval(countdownRef.current);
     };
   }, [probe]);
