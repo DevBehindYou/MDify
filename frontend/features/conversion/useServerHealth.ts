@@ -87,7 +87,7 @@ export function useServerHealth(): ServerHealthVM {
       stopPolling();
       if (countdownRef.current) clearInterval(countdownRef.current);
     };
-  }, [probe]);
+  }, [probe, startPolling, stopPolling]);
 
   return { status, countdown, retry };
 }
