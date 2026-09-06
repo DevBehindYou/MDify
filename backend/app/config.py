@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     # 25 MB per file — matches the free-tier memory envelope on Render.
     max_file_size: int = 25 * 1024 * 1024
 
+    # ── Concurrency ─────────────────────────────────────────────────────────
+    # Conversion is CPU/memory heavy. Bound concurrent conversions per process
+    # so async requests do not turn into an unbounded worker/memory spike.
+    max_concurrent_conversions: int = 2
+
     # ── Rate limiting (per client IP) ───────────────────────────────────────
     rate_limit_convert: str = "30/minute"
 
@@ -49,3 +54,4 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+"
