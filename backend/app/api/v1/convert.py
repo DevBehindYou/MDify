@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter, File, Form, Request, UploadFile
+from starlette.concurrency import run_in_threadpool
 
 from app.config import settings
 from app.core.errors import AppError, ErrorCode
@@ -11,6 +14,10 @@ from app.schemas.conversion import ConversionResult, ErrorResponse
 from app.services.conversion_service import convert_document
 
 router = APIRouter()
+
+# Conversion uses blocking libraries (MarkItDown, PDF/Office parsing, etc.).
+# Keep those off the asyncio event loop and bound parallel work per process.
+_conversion_slots = asyncio.Semaphore(settings.max_concurrent_conversions)
 
 
 @router.post(
@@ -38,5 +45,14 @@ async def convert(
             status_code=400,
         ) from exc
 
-    # convert_document raises typed AppError; the global handler renders it.
-    return convert_document(file.filename, content, profile=profile)
+    # convert_document is intentionally synchronous because the underlying
+    # parsing/conversion libraries are blocking. Run it in a worker thread so
+    # health checks and unrelated requests remain responsive.
+    async with _conversion_slots:
+        return await run_in_threadpool(
+            convert_document,
+            file.filename,
+            content,
+            profile,
+        )
+"

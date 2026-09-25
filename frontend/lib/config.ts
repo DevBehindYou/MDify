@@ -4,6 +4,8 @@
 import type { ProfileId } from '@/types';
 
 export const MAX_FILES = 10;
+// Keep the client-side pool aligned with the backend's per-process cap.
+export const MAX_PARALLEL_CONVERSIONS = 2;
 
 // Mirrors backend/app/pipeline/profiles.py.
 export interface ProfileOption {

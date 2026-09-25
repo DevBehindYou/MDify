@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app import __version__
@@ -24,6 +25,11 @@ class Settings(BaseSettings):
     # ── Upload limits ───────────────────────────────────────────────────────
     # 25 MB per file — matches the free-tier memory envelope on Render.
     max_file_size: int = 25 * 1024 * 1024
+
+    # ── Concurrency ─────────────────────────────────────────────────────────
+    # Conversion is CPU/memory heavy. Bound concurrent conversions per process
+    # so async requests do not turn into an unbounded worker/memory spike.
+    max_concurrent_conversions: int = Field(default=2, ge=1, le=8)
 
     # ── Rate limiting (per client IP) ───────────────────────────────────────
     rate_limit_convert: str = "30/minute"
@@ -49,3 +55,4 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+"
