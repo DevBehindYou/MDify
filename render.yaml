@@ -38,27 +38,31 @@ services:
       - key: SUPABASE_STORAGE_BUCKET
         sync: false
 
-  - type: web
-    name: mdify-ocr-o2
-    plan: free
-    region: singapore
-    runtime: docker
-    rootDir: backendO
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
-    healthCheckPath: /api/v1/ready
-    envVars:
-      - key: BACKEND_ROLE
-        value: ocr
-      - key: BACKEND_INSTANCE
-        value: O2
-      - key: OCR_TIMEOUT_S
-        value: "85"
-      - key: INTERNAL_SHARED_SECRET
-        sync: false
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      - key: SUPABASE_STORAGE_BUCKET
-        sync: false
+  # O2 is paused until O1 is verified in production (2026-09-28). To create it,
+  # remove the leading "# " from the block below and push; the Blueprint then
+  # adds the service and asks for the four sync: false values.
+  #
+  # - type: web
+  #   name: mdify-ocr-o2
+  #   plan: free
+  #   region: singapore
+  #   runtime: docker
+  #   rootDir: backendO
+  #   dockerfilePath: ./Dockerfile
+  #   dockerContext: .
+  #   healthCheckPath: /api/v1/ready
+  #   envVars:
+  #     - key: BACKEND_ROLE
+  #       value: ocr
+  #     - key: BACKEND_INSTANCE
+  #       value: O2
+  #     - key: OCR_TIMEOUT_S
+  #       value: "85"
+  #     - key: INTERNAL_SHARED_SECRET
+  #       sync: false
+  #     - key: SUPABASE_URL
+  #       sync: false
+  #     - key: SUPABASE_SERVICE_ROLE_KEY
+  #       sync: false
+  #     - key: SUPABASE_STORAGE_BUCKET
+  #       sync: false
