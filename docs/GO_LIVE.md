@@ -32,10 +32,12 @@ Generate each with `openssl rand -hex 32`:
 - `CRON_SECRET` (frontend)
 - `ADMIN_KEY_1`, `ADMIN_KEY_2` (frontend, two different values)
 
-In Supabase → Project Settings → Vault, add:
+In Supabase → Integrations → Vault, add:
 
-- `mdify_service_role_key` = the project's service role key
+- `mdify_service_role_key` = the project's legacy `service_role` key (the same value the
+  cleanup function reads as `SUPABASE_SERVICE_ROLE_KEY`)
 - `mdify_cron_secret` = the same value as `CRON_SECRET`
+- `mdify_keepwarm_url_o1`, `mdify_keepwarm_url_o2` = the O1 and O2 base URLs (no path)
 
 ## 3. Backends
 
@@ -56,9 +58,14 @@ Set `NORMAL_BACKEND_URLS`, `OCR_BACKEND_URLS`, `ARCHIVE_BACKEND_URLS` (comma-sep
 
 ## 5. Schedules
 
-1. `supabase functions deploy cleanup-expired-jobs`
+1. `supabase functions deploy cleanup-expired-jobs` (or Dashboard → Edge Functions → Via Editor),
+   JWT verification on.
 2. SQL Editor: run `supabase/cron.sql` after replacing `<project-ref>`.
-   It schedules the cleanup (every 30 minutes) and the job tick (every minute).
+   It schedules the cleanup (every 30 minutes), the job tick (every minute) and the OCR
+   keep-warm (every 10 minutes, 12:00–23:50 UTC, days 1–30; sized to stay inside Render's
+   750 free hours a month for two instances).
+3. Keep-warm outcomes (status only, no response bodies):
+   `select instance, requested_at, status_code, error from public.keepwarm_pings order by id desc limit 20;`
 
 ## 6. Measure (step 5 of the plan)
 
