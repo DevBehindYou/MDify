@@ -28,7 +28,7 @@ export const PRIVACY_POLICY = {
   summary: [
     'Files you upload are used for one thing: converting them to Markdown.',
     `They're deleted automatically ${RETENTION_HOURS} hours after upload, with no account needed.`,
-    'No ads, no tracking, and nobody trains AI models on your files.',
+    'No ads, no tracking cookies, only anonymous page-view counts. Nobody trains AI models on your files.',
   ],
   sections: [
     {
@@ -48,8 +48,9 @@ export const PRIVACY_POLICY = {
           'File details: name, type and size.',
           'A job record for each conversion: when it started and finished, which of our servers handled it, and any error.',
           'Technical request data: your IP address, browser type and the time of each request. Our hosting providers log these to deliver and protect the service.',
+          'Page-view statistics: which MDify page you opened, the website that linked to it, and your country, browser, operating system and device type. Our hosting provider\'s web analytics collects these without cookies. It recognises a returning visitor for at most 24 hours through a temporary code calculated from the request, and stores nothing on your device. File names and file content are never part of it, and the admin area is not counted.',
         ] },
-        { p: 'We don\'t ask for your name, email address or any account. We don\'t use cookies for tracking or advertising, and we run no third-party analytics.' },
+        { p: 'We don\'t ask for your name, email address or any account. We don\'t use cookies for tracking or advertising.' },
       ],
     },
     {
@@ -60,6 +61,7 @@ export const PRIVACY_POLICY = {
           'Converting your files and giving you the result. Legal basis: performing the service you request under our Terms (Art. 6(1)(b) GDPR).',
           'Keeping MDify secure and working: blocking abuse, fixing errors and measuring capacity. Legal basis: our legitimate interest in running a safe, reliable service (Art. 6(1)(f) GDPR).',
           'Recording that you accepted the Terms and this policy, so we can show which version you agreed to. Legal basis: Art. 6(1)(b) and (f) GDPR.',
+          'Counting page views, to see which pages people use and how they find MDify. Legal basis: our legitimate interest in improving the service (Art. 6(1)(f) GDPR). The counts are anonymous and need no cookies.',
         ] },
         { p: 'We never use your files or their content for advertising, profiling or training machine learning models.' },
       ],
@@ -73,6 +75,7 @@ export const PRIVACY_POLICY = {
           'Authorised administrators can delete a file earlier. In a specific case, such as investigating abuse or meeting a legal obligation, they can keep a file longer. Every such decision is logged.',
           `File names: deleted together with the files. After that, a job record keeps only the file type, size, timings and outcome, with nothing that identifies you.`,
           'Technical request logs: kept by our hosting providers for the period set in their own policies.',
+          'Page-view statistics: kept by our hosting provider as anonymous counts, for the period set in its own policy.',
         ] },
         { p: 'Some conversions run fully in server memory without storing the file at all. The limits above are the maximum, not the norm.' },
       ],
@@ -96,7 +99,7 @@ export const PRIVACY_POLICY = {
       blocks: [
         { p: 'We use a small number of service providers to run MDify. Each one processes data only on our instructions, under a data processing agreement:' },
         { ul: [
-          'hosting providers that run the website and our conversion servers,',
+          'hosting providers that run the website and our conversion servers, and count page views,',
           'a cloud storage and database provider that holds uploaded files, results and job records until they are deleted.',
         ] },
         { p: `You can ask us which providers we use by writing to ${OPERATOR.email}.` },

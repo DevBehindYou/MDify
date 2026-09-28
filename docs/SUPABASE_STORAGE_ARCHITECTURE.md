@@ -1,7 +1,9 @@
 # Supabase Storage — as built
 
-Status: **IMPLEMENTED BUT UNTESTED** against a real project (unit-tested with fakes on both
-frontend and backends). No MDify Supabase project exists yet.
+Status: unit-tested with fakes on both frontend and backends; the storage paths were **VERIFIED**
+against the real MDify project (`tests/integration/storage_live.mjs`, 5/5 rounds). **LIVE** since
+2026-09-28: project `MDify-Pro` (Tokyo), bucket created by the migration; every backend reports
+storage configured. Conversions through the live site have not been run yet.
 
 ## Bucket
 

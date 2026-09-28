@@ -17,6 +17,7 @@
     "brand:images": "node scripts/build-brand-images.mjs"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "jszip": "^3.10.1",
     "next": "^14.2.35",
     "prismjs": "^1.30.0",

@@ -38,9 +38,10 @@ services:
       - key: SUPABASE_STORAGE_BUCKET
         sync: false
 
-  # O2 is paused until O1 is verified in production (2026-09-28). To create it,
-  # remove the leading "# " from the block below and push; the Blueprint then
-  # adds the service and asks for the four sync: false values.
+  # Live services (2026-09-28): O1 and O2 were both created by hand in the
+  # Render dashboard with the settings in this file, not through a Blueprint,
+  # so this file does not manage them; edit their settings in the dashboard.
+  # The block below describes O2 for a Blueprint setup of a new workspace.
   #
   # - type: web
   #   name: mdify-ocr-o2

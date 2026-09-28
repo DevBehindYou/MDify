@@ -1,8 +1,11 @@
 # Retention and cleanup — as built
 
-Status: SQL **VERIFIED on PGlite** (`frontend/test/sql/*.test.mjs`); Edge Function **IMPLEMENTED BUT
-UNTESTED** (not deployed). Storage list/delete calls were checked against the real project
-(`tests/integration/storage_live.mjs`).
+Status: SQL **VERIFIED on PGlite** (`frontend/test/sql/*.test.mjs`). Storage list/delete calls were
+checked against the real project (`tests/integration/storage_live.mjs`). Edge Function deployed and
+scheduled on 2026-09-28, but the first version was **BROKEN**: it compared the caller's key with
+`SUPABASE_SERVICE_ROLE_KEY`, and on the live project the key string the function receives differs
+from the dashboard's legacy key. Every call got 401 `unauthorized`, so nothing was deleted. The code
+now checks the cron secret instead; it works once the steps below are done. Not yet tested live.
 
 ## Policy
 
@@ -16,9 +19,27 @@ UNTESTED** (not deployed). Storage list/delete calls were checked against the re
 
 ## Run (every 30 min, `supabase/cron.sql`)
 
+Access: the cron job sends two headers from Vault. `Authorization: Bearer <legacy service_role
+key>` (`mdify_service_role_key`) passes the platform's JWT check (JWT verification stays on).
+`x-mdify-cron-secret` (`mdify_cron_secret`) must equal the function secret `MDIFY_CRON_SECRET`
+(Edge Functions → Secrets), the same value as the frontend's `CRON_SECRET`; the function compares
+it in constant time and answers 401 otherwise. For Storage and the database the function uses
+`SUPABASE_SERVICE_ROLE_KEY`, or the default key in `SUPABASE_SECRET_KEYS`.
+
+To finish the fix on a project that ran the first version:
+
+1. Edge Functions → Secrets: add `MDIFY_CRON_SECRET` = the value of `CRON_SECRET`.
+2. Edge Functions → cleanup-expired-jobs → Code: paste the current `index.ts`, deploy.
+3. SQL Editor: run the `mdify-cleanup-expired-jobs` block of `supabase/cron.sql` again (with the
+   project ref filled in). It updates the job in place so it sends the new header.
+
+The run stays every 30 minutes on purpose. Files are due 48 hours after upload, so they are gone
+48 to 48.5 hours after upload, which is what the site and the Privacy Policy promise ("within 48
+hours", "cleanup runs every 30 minutes"). A 48-hour run interval would keep files up to 96 hours.
+
 ```text
-Supabase Cron (pg_cron + pg_net, key from Vault)
- → Edge Function cleanup-expired-jobs
+Supabase Cron (pg_cron + pg_net, secrets from Vault)
+ → Edge Function cleanup-expired-jobs (checks x-mdify-cron-secret)
    → sweep_stale_jobs()
    → claim_cleanup_batch(100)           FOR UPDATE SKIP LOCKED, attempt cap 5
    → per job: file_objects DELETE_PENDING

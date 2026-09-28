@@ -1,9 +1,13 @@
 # Supabase Postgres — as built
 
 Migration: `supabase/migrations/20260926000000_mdify_init.sql`.
-Status: **IMPLEMENTED BUT UNTESTED** against a database. The file parses with the
-Postgres parser (libpg_query via `pglast`, all PL/pgSQL bodies included).
-`supabase/tests/verify_permissions.sql` checks grants once it is applied.
+Status: **VERIFIED on PGlite** (`frontend/test/sql/`) and **LIVE**: all migrations were applied to the
+MDify project on 2026-09-28 through `supabase/MDIFY_SETUP.sql`; tables, bucket and the admin RPCs
+were checked there. `supabase/tests/verify_permissions.sql` checks grants.
+Later migrations: `…_mdify_work_queue.sql` (`docs/BACKGROUND_JOBS.md`), `…_mdify_admin.sql`
+(`docs/ADMIN_ARCHITECTURE.md`) and `…_mdify_keepwarm.sql`: table `keepwarm_pings` (status code or
+error per OCR health ping; successes kept 1 day, failures 14 days), `keepwarm_ping()` and
+`keepwarm_record()`, called only by Supabase Cron; RLS on, no API role has access.
 
 ## Tables
 

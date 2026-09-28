@@ -1,8 +1,10 @@
 # Background jobs (durable work queue)
 
-Status: **VERIFIED on real Postgres (PGlite) with fake backends; NOT DEPLOYED.** The SQL runs in
+Status: **VERIFIED on real Postgres (PGlite) with fake backends.** The SQL runs in
 `frontend/test/sql/workQueue.test.mjs`; the full flows (document, image, scanned PDF, ZIP) run in
-`frontend/test/storageFlow.test.mjs` against the shipped migrations.
+`frontend/test/storageFlow.test.mjs` against the shipped migrations. **LIVE since 2026-09-28**: the
+cron tick returns 200 every minute (`{"stale":0,"claimed":0,"outcomes":{}}` while idle); conversions
+through the live site have not been run yet.
 
 ## Why
 
@@ -55,6 +57,12 @@ since each OCRs one image at a time), `MAX_INFLIGHT_ARCHIVE` (default one per ar
   queued, backing off on errors, up to 30 minutes). Each call is one scheduling pass for that job.
 - **Supabase Cron** calls `POST /api/jobs/tick` every minute with `x-mdify-cron-secret`: it sweeps stale
   jobs, requeues expired leases and runs one pass across all jobs, so work continues when nobody waits.
+  The secret comes from Vault (`mdify_cron_secret`) and equals the frontend's `CRON_SECRET`.
+- **OCR keep-warm** (separate, no queue work): Supabase Cron calls `public.keepwarm_ping()` every 30
+  minutes, 12:00–23:30 UTC. It sends `GET /api/v1/health` to each Render instance whose base URL is in
+  Vault (`mdify_keepwarm_url_o1`, `_o2`), and `public.keepwarm_pings` keeps only the status code or
+  error. Render Free sleeps after 15 idle minutes, so each ping wakes the instance rather than
+  keeping it awake between pings; this uses about 400 of the workspace's 750 free hours a month.
 
 Both run the same code (`frontend/lib/server/jobQueue.js#runTick`).
 

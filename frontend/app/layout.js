@@ -2,6 +2,7 @@ import { Inter, JetBrains_Mono, Patrick_Hand } from 'next/font/google';
 import './globals.css';
 import ConsentBanner from '../components/ConsentBanner';
 import WakeOnOpen from '../components/WakeOnOpen';
+import SiteAnalytics from '../components/SiteAnalytics';
 import JsonLd from '../components/JsonLd';
 import { DESCRIPTION, KEYWORDS, SITE_NAME, SITE_URL, TAGLINE, siteJsonLd } from '../lib/siteContent';
 
@@ -119,6 +120,7 @@ export default function RootLayout({ children }) {
         {children}
         <ConsentBanner />
         <WakeOnOpen />
+        <SiteAnalytics />
       </body>
     </html>
   );

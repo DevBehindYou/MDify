@@ -1,7 +1,9 @@
 # MDify — Architecture (as built)
 
 Status labels: VERIFIED · IMPLEMENTED BUT UNTESTED · PARTIALLY VERIFIED · BROKEN · NOT IMPLEMENTED.
-"VERIFIED" here means verified **locally** (see `docs/testing/`); nothing is deployed yet.
+"VERIFIED" alone means verified **locally** (see `docs/testing/`). Everything was deployed on
+2026-09-28; "LIVE" says what was checked on the deployed system. Conversions through the live
+site (document, image, scanned PDF, ZIP) have not been run yet.
 
 ```text
 Browser
@@ -19,7 +21,8 @@ Browser
   │                                              └─ queue + job state ─► Supabase Postgres
   │ 5 GET signed download URL ─────────────► Supabase Storage
 Supabase Cron ── every minute ─► POST /api/jobs/tick (retries, abandoned jobs)
-              └─ every 30 min ─► Edge Function cleanup-expired-jobs (retention)
+              ├─ every 30 min ─► Edge Function cleanup-expired-jobs (retention)
+              └─ every 30 min, 12:00–23:30 UTC ─► GET O1, O2 /api/v1/health (keep-warm)
 Admin ─► /mdify-controller (two keys) ─► /api/admin/* (session cookie, audited)
 ```
 
@@ -36,16 +39,17 @@ listed only.
 | Frontend UI (MVVM) | `frontend/app`, `frontend/components`, `frontend/viewmodels`, `frontend/lib/models` | VERIFIED (build, unit tests, browser checks) |
 | Wake all backends on page open | `frontend/lib/server/wake.js`, `app/api/wake`, `components/WakeOnOpen.js` | VERIFIED (unit tests, browser) |
 | Dispatcher: pool routing, FNV-1a hash, one peer retry | `frontend/lib/server/dispatcher.js` | VERIFIED (unit tests + live failover) |
-| Durable work queue (background jobs) | `supabase/migrations/20260927000000_mdify_work_queue.sql`, `frontend/lib/server/jobQueue.js`, `jobService.js` | VERIFIED on real Postgres (PGlite) with fake backends; NOT DEPLOYED — see `docs/BACKGROUND_JOBS.md` |
+| Durable work queue (background jobs) | `supabase/migrations/20260927000000_mdify_work_queue.sql`, `frontend/lib/server/jobQueue.js`, `jobService.js` | VERIFIED on real Postgres (PGlite) with fake backends; LIVE: the tick runs every minute and returns 200 — see `docs/BACKGROUND_JOBS.md` |
 | Storage budget check before new jobs | `jobService.checkStorageBudget` | VERIFIED (tests) |
 | Scanned-page PDFs (text pages direct, scanned pages to O1/O2) | `backendN/app/pdf_tasks.py` | VERIFIED locally (real PDFs, 10 tests) |
-| ZIP files (backendZ, Z1/Z2) | `backendZ/app/archive.py`, `archive_tasks.py` | VERIFIED locally (38 tests, live run through the frontend); Vercel NOT DEPLOYED |
-| N1/N2 normal backend (`backendN`) | FastAPI + MarkItDown 0.1.8 | VERIFIED locally; Vercel NOT DEPLOYED |
-| O1/O2 OCR backend (`backendO`) | FastAPI + Tesseract 5 `tessdata_fast` + OSD | VERIFIED locally; Render NOT DEPLOYED |
+| ZIP files (backendZ, Z1/Z2) | `backendZ/app/archive.py`, `archive_tasks.py` | VERIFIED locally (38 tests, live run through the frontend); LIVE on Vercel (Tokyo): ready, secret and storage configured |
+| N1/N2 normal backend (`backendN`) | FastAPI + MarkItDown 0.1.8 | VERIFIED locally; LIVE on Vercel (Tokyo): ready, secret and storage configured |
+| O1/O2 OCR backend (`backendO`) | FastAPI + Tesseract 5 `tessdata_fast` + OSD | VERIFIED locally; LIVE on Render Free (Singapore): ready, Tesseract 5.5.0 |
+| OCR keep-warm | `supabase/migrations/20260928120000_mdify_keepwarm.sql`, `supabase/cron.sql` | LIVE: O1 and O2 answered 200 (`keepwarm_pings`) |
 | Supabase Storage paths (signed upload, service read/write, signed download, list, delete) | `supabaseRest.js`, `app/common/storage.py` | VERIFIED against the real MDify project (`tests/integration/storage_live.mjs`, 5/5 rounds) |
-| Postgres schema, RPCs, bucket | `supabase/migrations/*.sql`, pasted as `supabase/MDIFY_SETUP.sql` | VERIFIED on PGlite; NOT YET APPLIED to the MDify project |
-| Retention cleanup (whole job folder, then names forgotten) | `supabase/functions/cleanup-expired-jobs`, `supabase/cron.sql` | SQL parts VERIFIED on PGlite; Edge Function IMPLEMENTED BUT UNTESTED (not deployed) |
-| `/mdify-controller` admin | `frontend/app/mdify-controller`, `components/admin`, `lib/server/admin*.js`, `app/api/admin` | PARTIALLY VERIFIED: auth, guards, actions and SQL tested; UI checked in the browser without data (tables not applied yet) — see `docs/ADMIN_ARCHITECTURE.md` |
+| Postgres schema, RPCs, bucket | `supabase/migrations/*.sql`, pasted as `supabase/MDIFY_SETUP.sql` | VERIFIED on PGlite; LIVE: applied to the MDify project, admin RPCs return data |
+| Retention cleanup (whole job folder, then names forgotten) | `supabase/functions/cleanup-expired-jobs`, `supabase/cron.sql` | SQL parts VERIFIED on PGlite; Edge Function deployed but BROKEN until redeployed: the first version rejected every call (fixed in code, see `docs/RETENTION_AND_CLEANUP.md`) |
+| `/mdify-controller` admin | `frontend/app/mdify-controller`, `components/admin`, `lib/server/admin*.js`, `app/api/admin` | PARTIALLY VERIFIED: auth, guards, actions and SQL tested; LIVE session API works; not yet checked with real jobs — see `docs/ADMIN_ARCHITECTURE.md` |
 | Rate limiting (conversions) | – | NOT IMPLEMENTED (admin login is throttled) |
 
 ## Invariants

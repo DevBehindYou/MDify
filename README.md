@@ -110,7 +110,7 @@ The first conversion of the day can take up to a minute while the converter star
 
 - No account and no sign-up.
 - Uploads and results are deleted automatically within 48 hours.
-- Nobody trains AI models on your files. No ads and no tracking.
+- Nobody trains AI models on your files. No ads and no tracking cookies; the site only counts anonymous page views.
 - Full details: [Privacy Policy](https://mdify-app.vercel.app/privacy) and [Terms of Service](https://mdify-app.vercel.app/terms).
 
 ## FAQ
