@@ -1,0 +1,21 @@
+# MDify
+
+> MDify is a free online converter that turns PDF, Word, PowerPoint, Excel, EPUB, HTML, CSV, JSON, images and ZIP files into clean Markdown. No account is needed. Uploads and results are deleted automatically within 48 hours. Converting a typical 500-word PDF page to Markdown cuts the tokens an AI chat app spends on it by about 70%, so free AI plans last longer.
+
+Made by DevBehindYou (devbehindyou@gmail.com). Open source under the GNU General Public License v3.0. Last updated: 28 September 2026.
+
+## Pages
+
+- [MDify converter](https://mdify-app.vercel.app/): drop up to 20 files, pick an output profile (Standard, Clean, Compact, RAG-ready), then copy the Markdown, download .md files or export a .zip.
+- [Why Markdown for AI](https://mdify-app.vercel.app/usecase): how Markdown cuts PDF token costs by 70%, the supported formats and limits, and answers to common questions.
+- [Privacy Policy](https://mdify-app.vercel.app/privacy): what MDify processes, the 48-hour deletion, and your rights under the GDPR.
+- [Terms of Service](https://mdify-app.vercel.app/terms): rules for using the free service.
+
+## Key facts
+
+- Documents: PDF, DOCX, PPTX, XLSX, XLS, EPUB, HTML, CSV, TSV, JSON, XML, TXT, MD, up to 15 MB each.
+- Scanned PDFs: text pages are read directly, scanned pages go through text recognition (up to 100 per file).
+- Images: PNG, JPG, JPEG, WebP, TIFF, BMP, GIF, up to 10 MB each.
+- ZIP files: up to 15 MB and 2,000 files, converted into one Markdown file plus a project index and a manifest. Build folders are skipped and files that look like credentials are never read.
+- Batch: up to 20 files at once.
+- Token math for a 500-word page: about 667 tokens as Markdown, about 2,235 as a PDF on a standard-resolution model (text plus a page image), 70% less. Sources: OpenAI Help Center (100 tokens ≈ 75 words) and Claude's PDF and vision documentation.

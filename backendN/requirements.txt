@@ -1,0 +1,6 @@
+# Runtime dependencies for backendN (normal pool, N1/N2 on Vercel).
+# No Tesseract / image stack here — images go to backendO.
+fastapi>=0.115,<1
+python-multipart>=0.0.18
+markitdown[pdf,docx,pptx,xlsx,xls]>=0.1.3,<0.2
+httpx>=0.27,<1

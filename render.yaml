@@ -1,0 +1,58 @@
+# Render Blueprint for the OCR pool (backendO): two identical instances.
+# The frontend lists both URLs in OCR_BACKEND_URLS.
+#
+# Plan: Free (512 MB RAM, 0.1 CPU). Free services sleep after 15 idle minutes
+# and take about a minute to wake; the frontend dispatcher allows 150 s per OCR
+# attempt for that. The workspace gets 750 free instance hours a month, counted
+# only while a service is awake. Measured worst-case OCR memory with the
+# current caps is 243 MB (docs/testing/OCR_BENCHMARK_REPORT.md).
+services:
+  - type: web
+    name: mdify-ocr-o1
+    plan: free
+    runtime: docker
+    rootDir: backendO
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/ready
+    envVars:
+      - key: BACKEND_ROLE
+        value: ocr
+      - key: BACKEND_INSTANCE
+        value: O1
+      # 0.1 CPU makes OCR much slower than on a full core. Wake-up (~60 s)
+      # plus this budget must stay under the dispatcher's 150 s OCR attempt.
+      - key: OCR_TIMEOUT_S
+        value: "85"
+      - key: INTERNAL_SHARED_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        sync: false
+
+  - type: web
+    name: mdify-ocr-o2
+    plan: free
+    runtime: docker
+    rootDir: backendO
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/ready
+    envVars:
+      - key: BACKEND_ROLE
+        value: ocr
+      - key: BACKEND_INSTANCE
+        value: O2
+      - key: OCR_TIMEOUT_S
+        value: "85"
+      - key: INTERNAL_SHARED_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        sync: false
