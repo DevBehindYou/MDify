@@ -7,13 +7,14 @@
 # only while a service is awake. Measured worst-case OCR memory with the
 # current caps is 243 MB (docs/testing/OCR_BENCHMARK_REPORT.md).
 #
-# Region: Frankfurt, next to the Supabase project (EU). A service's region
+# Region: Singapore, the Render region closest to the Supabase project
+# (ap-northeast-1, Tokyo; Render has no Tokyo region). A service's region
 # cannot be changed after it is created.
 services:
   - type: web
     name: mdify-ocr-o1
     plan: free
-    region: frankfurt
+    region: singapore
     runtime: docker
     rootDir: backendO
     dockerfilePath: ./Dockerfile
@@ -40,7 +41,7 @@ services:
   - type: web
     name: mdify-ocr-o2
     plan: free
-    region: frankfurt
+    region: singapore
     runtime: docker
     rootDir: backendO
     dockerfilePath: ./Dockerfile
