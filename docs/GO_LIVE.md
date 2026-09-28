@@ -2,6 +2,20 @@
 
 Do these in order. Nothing here is done yet unless marked.
 
+## 0. Vercel pitfalls (learned 2026-09-28)
+
+- **The `mdify-app` project builds from the repo root.** Pushing the new layout (app in `frontend/`) on
+  2026-09-28 (commit `51e71c2 New-App-Launch`) made Vercel publish the repo root as a static site: the
+  home page returned 404 and repo files were served. Fix: Instant Rollback to the previous production
+  deployment, then set Root Directory = `frontend` before promoting the new frontend. A rollback also
+  stops pushes from going live automatically until a deployment is promoted again.
+- **Use production domains for backends** (`https://mdify-n1.vercel.app`), never the long generated
+  deployment URLs (`…-<hash>-<team>.vercel.app`): on Hobby, Standard Deployment Protection puts those
+  behind a Vercel login, so server-to-server calls would fail.
+- **Never deploy with the local secret.** The local `.env` files use the placeholder `change-me` as the
+  shared secret. Production needs a new value from `openssl rand -hex 32`.
+- Put Vercel Function regions and the Render region close to the Supabase project's region.
+
 ## 1. Database (Supabase SQL Editor)
 
 1. Open the MDify project → SQL Editor → paste `supabase/MDIFY_SETUP.sql` → Run.
