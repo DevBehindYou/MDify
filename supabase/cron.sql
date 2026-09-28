@@ -3,11 +3,12 @@
 --   2. the Edge Function cleanup-expired-jobs is deployed (Dashboard → Edge
 --      Functions → Deploy a new function → Via Editor, or
 --      `supabase functions deploy cleanup-expired-jobs`), JWT verification on,
+--      with the function secret MDIFY_CRON_SECRET (Edge Functions → Secrets)
+--      set to the same value as CRON_SECRET on the frontend,
 --   3. two secrets are stored in Vault (Dashboard → Integrations → Vault),
 --      so they never appear in this SQL:
---        'mdify_service_role_key'  the project's legacy service_role key (the
---                                  function compares it with its own
---                                  SUPABASE_SERVICE_ROLE_KEY, so it must match)
+--        'mdify_service_role_key'  the project's legacy service_role key; it
+--                                  only passes the platform's JWT check
 --        'mdify_cron_secret'       the same value as CRON_SECRET on the frontend
 -- Replace <project-ref> before running. Running it again updates both jobs
 -- (cron.schedule replaces a job with the same name).
@@ -34,10 +35,15 @@ select cron.schedule(
   $$
   select net.http_post(
     url := 'https://<project-ref>.supabase.co/functions/v1/cleanup-expired-jobs',
+    -- Authorization passes the platform's JWT check; the cron secret is what
+    -- the function itself checks (function secret MDIFY_CRON_SECRET).
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || (
         select decrypted_secret from vault.decrypted_secrets where name = 'mdify_service_role_key'
+      ),
+      'x-mdify-cron-secret', (
+        select decrypted_secret from vault.decrypted_secrets where name = 'mdify_cron_secret'
       )
     ),
     body := '{}'::jsonb,

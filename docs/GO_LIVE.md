@@ -34,8 +34,8 @@ Generate each with `openssl rand -hex 32`:
 
 In Supabase → Integrations → Vault, add:
 
-- `mdify_service_role_key` = the project's legacy `service_role` key (the same value the
-  cleanup function reads as `SUPABASE_SERVICE_ROLE_KEY`)
+- `mdify_service_role_key` = the project's legacy `service_role` key (passes the platform's
+  JWT check on the cleanup function)
 - `mdify_cron_secret` = the same value as `CRON_SECRET`
 - `mdify_keepwarm_url_o1`, `mdify_keepwarm_url_o2` = the O1 and O2 base URLs (no path)
 
@@ -59,7 +59,8 @@ Set `NORMAL_BACKEND_URLS`, `OCR_BACKEND_URLS`, `ARCHIVE_BACKEND_URLS` (comma-sep
 ## 5. Schedules
 
 1. `supabase functions deploy cleanup-expired-jobs` (or Dashboard → Edge Functions → Via Editor),
-   JWT verification on.
+   JWT verification on. Edge Functions → Secrets: add `MDIFY_CRON_SECRET` = the same value as
+   `CRON_SECRET`. The function accepts only callers that send it as `x-mdify-cron-secret`.
 2. SQL Editor: run `supabase/cron.sql` after replacing `<project-ref>`.
    It schedules the cleanup (every 30 minutes), the job tick (every minute) and the OCR
    keep-warm (every 30 minutes, 12:00–23:30 UTC; about 400 of Render's 750 free hours a month

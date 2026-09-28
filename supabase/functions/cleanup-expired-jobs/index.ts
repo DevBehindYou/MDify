@@ -13,11 +13,18 @@
 //
 // Storage is deleted before metadata is finalized, never the other way round.
 // A failed Storage delete leaves the job PARTIAL/ERROR for the next run; the
-// claim RPC caps attempts. Status: IMPLEMENTED BUT UNTESTED (not deployed yet).
+// claim RPC caps attempts.
+//
+// Who may run it: only a caller that sends x-mdify-cron-secret equal to the
+// function secret MDIFY_CRON_SECRET (the same value as CRON_SECRET on the
+// frontend and mdify_cron_secret in Vault). Comparing the Authorization key
+// with SUPABASE_SERVICE_ROLE_KEY does not work: the platform may give the
+// function a different key string than the dashboard shows.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const BUCKET = Deno.env.get("SUPABASE_STORAGE_BUCKET") ?? "mdify-pro-files";
+const CRON_SECRET = Deno.env.get("MDIFY_CRON_SECRET") ?? "";
 const BATCH_SIZE = Number(Deno.env.get("CLEANUP_BATCH_SIZE") ?? "100");
 const PAGE = 1000;
 const REMOVE_CHUNK = 100;
@@ -53,14 +60,34 @@ async function removeAll(db: Db, paths: string[]): Promise<void> {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-Deno.serve(async (req) => {
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  // Only the cron job (which sends the service key) may trigger deletions.
-  if (!serviceKey || req.headers.get("Authorization") !== `Bearer ${serviceKey}`) {
-    return json({ error: "unauthorized" }, 401);
-  }
+// Constant-time comparison, so response timing reveals nothing about the secret.
+function authorized(req: Request): boolean {
+  const given = req.headers.get("x-mdify-cron-secret") ?? "";
+  if (!CRON_SECRET || given.length !== CRON_SECRET.length) return false;
+  let diff = 0;
+  for (let i = 0; i < given.length; i++) diff |= given.charCodeAt(i) ^ CRON_SECRET.charCodeAt(i);
+  return diff === 0;
+}
 
-  const db = createClient(Deno.env.get("SUPABASE_URL") ?? "", serviceKey, {
+// The key for Storage and the database. Supabase provides the legacy
+// service_role key or, on projects using the new API keys, SUPABASE_SECRET_KEYS.
+function serviceKey(): string {
+  const legacy = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (legacy) return legacy;
+  try {
+    return JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}").default ?? "";
+  } catch {
+    return "";
+  }
+}
+
+Deno.serve(async (req) => {
+  // Only the cron job may trigger deletions.
+  if (!authorized(req)) return json({ error: "unauthorized" }, 401);
+  const key = serviceKey();
+  if (!key) return json({ error: "no service key in the function environment" }, 500);
+
+  const db = createClient(Deno.env.get("SUPABASE_URL") ?? "", key, {
     auth: { persistSession: false },
   });
   const started = Date.now();
