@@ -6,10 +6,14 @@
 # attempt for that. The workspace gets 750 free instance hours a month, counted
 # only while a service is awake. Measured worst-case OCR memory with the
 # current caps is 243 MB (docs/testing/OCR_BENCHMARK_REPORT.md).
+#
+# Region: Frankfurt, next to the Supabase project (EU). A service's region
+# cannot be changed after it is created.
 services:
   - type: web
     name: mdify-ocr-o1
     plan: free
+    region: frankfurt
     runtime: docker
     rootDir: backendO
     dockerfilePath: ./Dockerfile
@@ -36,6 +40,7 @@ services:
   - type: web
     name: mdify-ocr-o2
     plan: free
+    region: frankfurt
     runtime: docker
     rootDir: backendO
     dockerfilePath: ./Dockerfile
