@@ -62,8 +62,8 @@ Set `NORMAL_BACKEND_URLS`, `OCR_BACKEND_URLS`, `ARCHIVE_BACKEND_URLS` (comma-sep
    JWT verification on.
 2. SQL Editor: run `supabase/cron.sql` after replacing `<project-ref>`.
    It schedules the cleanup (every 30 minutes), the job tick (every minute) and the OCR
-   keep-warm (every 10 minutes, 12:00–23:50 UTC, days 1–30; sized to stay inside Render's
-   750 free hours a month for two instances).
+   keep-warm (every 30 minutes, 12:00–23:30 UTC; about 400 of Render's 750 free hours a month
+   for two instances. Render sleeps after 15 idle minutes, so each ping wakes the instance).
 3. Keep-warm outcomes (status only, no response bodies):
    `select instance, requested_at, status_code, error from public.keepwarm_pings order by id desc limit 20;`
 

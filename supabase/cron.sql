@@ -20,7 +20,7 @@
 -- mdify-jobs-tick             every minute: finishes background work when no
 --                             browser is waiting (retries, archive images,
 --                             merges) and retires stale jobs.
--- mdify-keepwarm-ocr          every 10 minutes, 12:00–23:50 UTC, days 1–30:
+-- mdify-keepwarm-ocr          every 30 minutes, 12:00–23:30 UTC:
 --                             GET /api/v1/health on each OCR backend.
 -- mdify-keepwarm-record       00:05 UTC daily: records the outcome of the
 --                             window's last pings before pg_net drops them.
@@ -67,13 +67,13 @@ select cron.schedule(
 );
 
 -- Keep-warm budget: Render gives a workspace 750 free instance hours a month
--- and suspends every free service when they run out. An instance pinged
--- 12:00–23:50 stays awake until about 00:05, so about 12.1 h a day; two
--- instances for 31 days would use 749 h. Skipping the 31st caps the month at
--- about 725 h and leaves about 25 h for wake-ups outside the window.
+-- and suspends every free service when they run out. A free instance sleeps
+-- after 15 idle minutes, so a ping every 30 minutes wakes it each time and it
+-- is awake about 16 of every 30 minutes (asleep the rest): about 6.4 h a day,
+-- about 400 h a month for two instances.
 select cron.schedule(
   'mdify-keepwarm-ocr',
-  '*/10 12-23 1-30 * *',
+  '*/30 12-23 * * *',
   $$ select public.keepwarm_ping(); $$
 );
 

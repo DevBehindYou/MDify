@@ -1,8 +1,8 @@
 -- MDify keep-warm for the OCR backends (O1, O2 on Render Free).
 --
 -- Render Free services sleep after 15 idle minutes and need about a minute
--- to wake. Supabase Cron calls keepwarm_ping() every 10 minutes during the
--- active window (supabase/cron.sql). Each call sends one GET to
+-- to wake. Supabase Cron calls keepwarm_ping() on the schedule in
+-- supabase/cron.sql (every 30 minutes, 12:00–23:30 UTC). Each call sends one GET to
 -- /api/v1/health on every backend listed in Vault; that route does no
 -- conversion work and needs no secret.
 --
@@ -78,9 +78,9 @@ $$;
 -- ── Ping ───────────────────────────────────────────────────────────────────
 
 -- Queues one health check per backend. An instance pinged within the last
--- 20 minutes is awake and answers at once, so a short timeout is enough; the
--- first ping after a gap (overnight, a skipped day) waits for the wake-up.
--- Returns the number of requests queued.
+-- 15 minutes (Render's idle limit) is awake and answers at once, so a short
+-- timeout is enough; otherwise the instance is probably asleep and the ping
+-- waits for the wake-up. Returns the number of requests queued.
 create or replace function public.keepwarm_ping()
 returns integer
 language plpgsql
@@ -124,7 +124,7 @@ begin
       v_request := net.http_get(
         url := v_url || '/api/v1/health',
         timeout_milliseconds := case
-          when v_last > now() - interval '20 minutes' then c_awake_timeout_ms
+          when v_last > now() - interval '15 minutes' then c_awake_timeout_ms
           else c_wake_timeout_ms
         end
       );
