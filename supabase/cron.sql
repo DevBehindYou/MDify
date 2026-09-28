@@ -1,19 +1,24 @@
 -- MDify schedules (Supabase Cron = pg_cron + pg_net). Run once, after:
 --   1. the migrations in supabase/migrations/ are applied,
---   2. the Edge Function is deployed:  supabase functions deploy cleanup-expired-jobs
---   3. two secrets are stored in Vault (Dashboard → Project Settings → Vault),
+--   2. the Edge Function cleanup-expired-jobs is deployed (Dashboard → Edge
+--      Functions → Deploy a new function → Via Editor, or
+--      `supabase functions deploy cleanup-expired-jobs`), JWT verification on,
+--   3. two secrets are stored in Vault (Dashboard → Integrations → Vault),
 --      so they never appear in this SQL:
---        'mdify_service_role_key'  the project's service role key
+--        'mdify_service_role_key'  the project's legacy service_role key (the
+--                                  function compares it with its own
+--                                  SUPABASE_SERVICE_ROLE_KEY, so it must match)
 --        'mdify_cron_secret'       the same value as CRON_SECRET on the frontend
--- Replace <project-ref> before running.
+-- Replace <project-ref> before running. Running it again updates both jobs
+-- (cron.schedule replaces a job with the same name).
 --
 -- mdify-cleanup-expired-jobs  every 30 minutes: deletes expired files.
 -- mdify-jobs-tick             every minute: finishes background work when no
 --                             browser is waiting (retries, archive images,
 --                             merges) and retires stale jobs.
 
-create extension if not exists pg_cron;
-create extension if not exists pg_net;
+create extension if not exists pg_cron with schema pg_catalog;
+create extension if not exists pg_net with schema extensions;
 
 select cron.schedule(
   'mdify-cleanup-expired-jobs',
