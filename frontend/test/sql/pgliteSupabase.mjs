@@ -142,7 +142,7 @@ export function createPgliteSupabase(pg, { bucket = 'mdify-pro-files', calls = [
       for (const path of [...objects.keys()].sort()) {
         if (!path.startsWith(base)) continue;
         const [name, ...rest] = path.slice(base.length).split('/');
-        if (!seen.has(name)) seen.set(name, { name, id: rest.length ? null : `id-${path}` });
+        if (!seen.has(name)) seen.set(name, { name, id: rest.length ? null : `id-${path}`, metadata: rest.length ? null : objects.get(path)?.metadata });
       }
       return [...seen.values()].slice(offset, offset + limit);
     },
