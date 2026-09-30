@@ -182,29 +182,22 @@ export async function executeItem(db, item, { env = process.env, secret, fetchIm
 
   if (status === 200) {
     const spawn = spawnFromResult(item, res);
-    if (spawn) {
-      await db.rpc('add_work_items', { p_job_id: item.job_id, p_nodes: spawn.nodes, p_items: spawn.items });
-    }
     const stats = statsOnly(res);
-    const jobStatus = await db.rpc('complete_work_item', {
-      p_work_item_id: item.work_item_id,
-      p_attempt: item.attempt_count,
-      p_outcome: 'SUCCEEDED',
-      p_backend: backend,
-      p_duration_ms: duration,
-      p_result: stats,
-      // Still the final step unless it handed work to child items.
-      p_is_final: spawn?.items?.length ? false : null,
+    const jobStatus = await db.rpc('finish_work_item', {
+      p_work_item_id: item.work_item_id, p_attempt: item.attempt_count,
+      p_outcome: 'SUCCEEDED', p_bucket: db.bucket, p_backend: backend,
+      p_duration_ms: duration, p_result: stats,
+      p_nodes: spawn?.nodes || [], p_items: spawn?.items || [],
     });
-    if (jobStatus === 'COMPLETED') await recordCompletion(db, item, stats);
     return { item: item.work_item_id, outcome: 'SUCCEEDED', jobStatus, reachedBackend: Boolean(instanceUrl) };
   }
 
   const outcome = TRANSIENT.has(status) ? 'RETRY' : 'FAILED';
-  const jobStatus = await db.rpc('complete_work_item', {
+  const jobStatus = await db.rpc('finish_work_item', {
     p_work_item_id: item.work_item_id,
     p_attempt: item.attempt_count,
     p_outcome: outcome,
+    p_bucket: db.bucket,
     p_backend: backend,
     p_duration_ms: duration,
     p_result: null,
@@ -221,45 +214,6 @@ export async function executeItem(db, item, { env = process.env, secret, fetchIm
     });
   }
   return { item: item.work_item_id, outcome, jobStatus };
-}
-
-/**
- * The job's final item succeeded: register its outputs (file_objects, so
- * KPIs and cleanup see them) and write the one COMPLETED event.
- */
-async function recordCompletion(db, item, stats) {
-  const outputs = stats?.outputs?.length
-    ? stats.outputs
-    : [{ path: item.output_path, kind: 'OUTPUT', bytes: stats?.output_bytes, name: stats?.filename }];
-  const now = new Date().toISOString();
-  await db.insertMany(
-    'file_objects',
-    outputs.map((o) => ({
-      job_id: item.job_id,
-      bucket: db.bucket,
-      object_path: o.path,
-      kind: o.kind === 'EXPORT' ? 'EXPORT' : 'OUTPUT',
-      extension: String(o.path).split('.').pop(),
-      mime_type: o.path.endsWith('.json') ? 'application/json' : 'text/markdown',
-      size_bytes: o.bytes ?? null,
-      storage_status: 'ACTIVE',
-      uploaded_at: now,
-    })),
-    { onConflict: 'bucket,object_path' }
-  );
-  await db.update('jobs', { job_id: `eq.${item.job_id}` }, {
-    engine: stats?.engine || null,
-    backend_role: item.pool,
-    estimated_tokens: stats?.tokens_est ?? null,
-  });
-  await db.insert('job_events', {
-    job_id: item.job_id,
-    event_type: 'COMPLETED',
-    status: 'COMPLETED',
-    stage: item.task_type,
-    backend_role: item.pool,
-    backend_instance: stats?.backend_instance ? String(stats.backend_instance).toLowerCase() : null,
-  });
 }
 
 /**

@@ -22,14 +22,6 @@ const PROFILE_DB = { Standard: 'standard', Clean: 'clean', Compact: 'compact', '
 const WORKLOAD_DB = { normal: 'NORMAL', ocr: 'OCR', archive: 'ARCHIVE' };
 const TERMINAL = new Set(['COMPLETED', 'FAILED', 'CANCELLED', 'DELETED']);
 
-// Root task per source type: [task_type, pool].
-const ROOT_TASK = {
-  DOCUMENT: ['CONVERT', 'normal'],
-  IMAGE: ['OCR_IMAGE', 'ocr'],
-  PDF: ['PDF_ANALYZE', 'normal'],
-  ARCHIVE: ['ARCHIVE_PROCESS', 'archive'],
-};
-
 // Storage a job can occupy, as a multiple of its upload: the input plus
 // results, and for PDFs and archives also rendered pages / extracted images.
 const FOOTPRINT = { DOCUMENT: 2, IMAGE: 2, PDF: 3, ARCHIVE: 3 };
@@ -53,8 +45,6 @@ export function sourceTypeFor(ext) {
   if (OCR_EXTENSIONS.includes(ext)) return 'IMAGE';
   return 'DOCUMENT';
 }
-
-const profileLabel = (dbValue) => Object.keys(PROFILE_DB).find((k) => PROFILE_DB[k] === dbValue) || 'Standard';
 
 // ── Storage budget ──────────────────────────────────────────────────────────
 
@@ -147,36 +137,21 @@ async function loadJob(db, jobId) {
 }
 
 export async function startJob(db, jobId, { secret, env = process.env, fetchImpl, tick = true } = {}) {
-  const confirmed = await db.rpc('confirm_upload', { p_job_id: jobId });
-  if (!confirmed?.job_id) {
-    // Not waiting for its upload: already started (a double click or a
-    // retried request) or unknown. Report the current state either way.
+  const job = await loadJob(db, jobId);
+  if (TERMINAL.has(job.status) || job.status === 'CANCEL_REQUESTED') {
     return { status: 200, body: await jobStatus(db, jobId) };
   }
-
-  const ext = confirmed.source_extension;
-  const sourceType = confirmed.source_type || sourceTypeFor(ext);
-  const [task, pool] = ROOT_TASK[sourceType];
-  await db.update('file_objects', { job_id: `eq.${jobId}`, kind: 'eq.INPUT' }, {
-    storage_status: 'ACTIVE',
-    uploaded_at: new Date().toISOString(),
-  });
-  const root = await db.rpc('enqueue_root', {
-    p_job_id: jobId,
-    p_task_type: task,
-    p_pool: pool,
-    p_input_path: inputPath(jobId, ext),
-    p_output_path: outputPath(jobId, sourceType),
-    p_source_type: sourceType,
-    p_node_type: 'ROOT_FILE',
-    p_is_final: true,
-    p_payload: {
-      original_filename: confirmed.original_filename || `source.${ext}`,
-      profile: profileLabel(confirmed.profile),
-    },
-  });
-  if (root?.work_item_id) {
-    await db.insert('job_events', { job_id: jobId, event_type: 'QUEUED', status: 'QUEUED', stage: task });
+  if (job.status === 'UPLOADING' || job.status === 'QUEUED') {
+    const path = inputPath(jobId, job.source_extension);
+    const files = await db.select('file_objects', { job_id: `eq.${jobId}`, kind: 'eq.INPUT', select: 'size_bytes' });
+    const objects = await db.listObjects(path.slice(0, path.lastIndexOf('/')));
+    const object = objects?.find((o) => o.name === path.split('/').pop() && o.id);
+    const size = Number(object?.metadata?.size);
+    if (!object || !Number.isSafeInteger(size) || size <= 0) throw new JobError('The upload is not available yet. Please retry the upload.', 409);
+    if (size !== Number(files?.[0]?.size_bytes) || size > maxFileSizeFor(job.source_extension)) {
+      throw new JobError('The uploaded file size does not match the requested upload.', 413);
+    }
+    await db.rpc('start_uploaded_job', { p_job_id: jobId, p_bucket: db.bucket, p_verified_size: size });
   }
   if (tick) await runTick(db, { jobId, env, secret, fetchImpl });
   const body = await jobStatus(db, jobId);
@@ -234,6 +209,8 @@ async function finalResult(db, jobId) {
 }
 
 async function finishedResult(db, job) {
+  const registered = await db.select('file_objects', { job_id: `eq.${job.job_id}`, kind: 'eq.OUTPUT', select: 'file_id', limit: '1' });
+  if (!registered?.length) await db.rpc('finalize_job_outputs', { p_job_id: job.job_id, p_bucket: db.bucket });
   const final = await finalResult(db, job.job_id);
   const r = final?.result || {};
   const outputs = (r.outputs?.length ? r.outputs : [{ path: final?.output_path || outputPath(job.job_id, job.source_type), name: r.filename, kind: 'OUTPUT' }])

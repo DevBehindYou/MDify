@@ -29,7 +29,7 @@ async function setup() {
   return { pg, db: createPgliteSupabase(pg) };
 }
 
-/** Fake backend pools: `handlers[path](body, host)` → [status, json]. */
+/** Fake backend pools: `handlers[path](body, host)` â†’ [status, json]. */
 function backends(handlers) {
   const calls = [];
   const fetchImpl = async (url, init) => {
@@ -52,7 +52,11 @@ const stats = (body, extra = {}) => ({
 
 const start = (db, jobId, handlers) => {
   const pools = backends(handlers);
-  return { pools, run: () => startJob(db, jobId, { secret: 's', env: ENV, fetchImpl: pools.fetchImpl }) };
+  return { pools, run: async () => {
+    const [file] = await db.select('file_objects', { job_id: `eq.${jobId}`, kind: 'eq.INPUT' });
+    db.objects.set(file.object_path, { metadata: { size: Number(file.size_bytes) } });
+    return startJob(db, jobId, { secret: 's', env: ENV, fetchImpl: pools.fetchImpl });
+  } };
 };
 
 test('supabaseConfig needs url and service key', () => {
@@ -246,7 +250,7 @@ test('downloadUrl only for completed jobs whose files still exist', async () => 
   await assert.rejects(downloadUrl(db, rows[1].job_id), (e) => e.status === 410);
 });
 
-// ── browser transport ──────────────────────────────────────────────────────
+// â”€â”€ browser transport â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 beforeEach(() => resetTransportForTests());
 

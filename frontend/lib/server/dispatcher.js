@@ -122,7 +122,7 @@ export async function sendToPool({
     try {
       body = await res.json();
     } catch {
-      body = { detail: `Backend returned an unreadable response (${res.status}).` };
+      return { status: res.ok ? 502 : res.status, body: { detail: `Backend returned an unreadable response (${res.status}).` }, instanceUrl: baseUrl, attempts };
     }
     return { status: res.status, body, instanceUrl: baseUrl, attempts };
   }
