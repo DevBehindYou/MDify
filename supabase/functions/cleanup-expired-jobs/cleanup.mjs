@@ -86,7 +86,9 @@ export function createCleanupHandler({ env, createClient }) {
       if (target) {
         stage = 'claim';
         const job = await checked(db.rpc('claim_job_cleanup', { p_job_id: target }), stage);
-        jobs = job ? [job] : [];
+        // PostgREST can serialize a NULL composite as a row of null fields.
+        if (job?.job_id && job.job_id.toLowerCase() !== target.toLowerCase()) throw new Error('unexpected cleanup claim');
+        jobs = job?.job_id && job.cleanup_token ? [job] : [];
       } else {
         stage = 'cancel';
         await checked(db.rpc('settle_cancelled_jobs'), stage);

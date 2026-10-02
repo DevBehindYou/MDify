@@ -231,3 +231,18 @@ test('targeted claim errors never fall back to the global batch', async t => {
   const response=await createCleanupHandler({ env, createClient:() => sdk(db,{ claim_job_cleanup:true }) })(targetedRequest(job.job_id));
   assert.equal(response.status,500); assert.equal((await row()).files_deleted_at,null); assert.equal(db.objects.size,1);
 });
+
+
+test('PostgREST null composite claims report zero and mismatched claims fail closed', async () => {
+  for(const shape of [null, { job_id:null, cleanup_token:null }, { job_id:crypto.randomUUID(), cleanup_token:crypto.randomUUID() }]) {
+    const calls=[];
+    const handler=createCleanupHandler({ env, createClient:()=>({
+      rpc:async name=>{ calls.push(name); return { data:shape,error:null }; },
+      from:table=>({ insert:async()=>{ calls.push(table); return { data:null,error:null }; } }),
+    }) });
+    const response=await handler(targetedRequest(crypto.randomUUID()));
+    assert.equal(response.status,shape?.job_id?500:200);
+    if(!shape?.job_id) assert.equal((await response.json()).claimed,0);
+    assert.deepEqual(calls,['claim_job_cleanup','audit_logs']);
+  }
+});
