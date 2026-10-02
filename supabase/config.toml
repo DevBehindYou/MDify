@@ -1,0 +1,7 @@
+# The deployed function authenticates x-mdify-cron-secret before any DB access.
+project_id = "MDify"
+
+[functions.cleanup-expired-jobs]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/cleanup-expired-jobs/index.ts"
