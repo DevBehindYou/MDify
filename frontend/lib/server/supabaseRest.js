@@ -32,6 +32,7 @@ export function createSupabase(config, fetchImpl = fetch) {
       ...init,
       headers: { ...headers, ...(init.headers || {}) },
       cache: 'no-store',
+      signal: AbortSignal.timeout(30_000),
     });
     const text = await res.text();
     let data = null;
@@ -96,8 +97,8 @@ export function createSupabase(config, fetchImpl = fetch) {
     },
 
     /** One folder level: files have an id, sub-folders have id === null. */
-    listObjects: (prefix, { limit = 1000, offset = 0 } = {}) =>
-      call(`/storage/v1/object/list/${config.bucket}`, json('POST', { prefix, limit, offset })),
+    listObjects: (prefix, { limit = 1000, offset = 0, sortBy = { column: 'name', order: 'asc' } } = {}) =>
+      call(`/storage/v1/object/list/${config.bucket}`, json('POST', { prefix, limit, offset, sortBy })),
 
     /** Deletes objects; paths that do not exist are ignored by Storage. */
     removeObjects: (paths) => call(`/storage/v1/object/${config.bucket}`, json('DELETE', { prefixes: paths })),

@@ -9,7 +9,16 @@ with fns(sig) as (
     ('public.sweep_stale_jobs(interval, interval)'),
     ('public.claim_cleanup_batch(integer, interval, integer)'),
     ('public.request_delete_now(uuid)'),
-    ('public.get_admin_kpis()')
+    ('public.get_admin_kpis()'),
+    ('public.start_uploaded_job(uuid,text,bigint)'),
+    ('public.finalize_job_outputs(uuid,text)'),
+    ('public.finish_work_item(uuid,integer,text,text,text,bigint,jsonb,text,text,jsonb,jsonb)'),
+    ('public.cleanup_is_due(public.jobs)'),
+    ('public.claim_job_cleanup(uuid)'),
+    ('public.begin_job_cleanup(uuid,uuid)'),
+    ('public.finish_job_cleanup(uuid,uuid)'),
+    ('public.fail_job_cleanup(uuid,uuid)'),
+    ('public.settle_cancelled_jobs()')
 ),
 roles(role, should_execute) as (
   values ('anon', false), ('authenticated', false), ('service_role', true)
@@ -34,12 +43,21 @@ select 'security_definer', p.proname, '-', p.prosecdef, not p.prosecdef
   from pg_proc p
   join pg_namespace n on n.oid = p.pronamespace
  where n.nspname = 'public'
-   and p.proname in ('confirm_upload','sweep_stale_jobs','claim_cleanup_batch','request_delete_now','get_admin_kpis','mdify_set_updated_at')
+   and p.proname in ('confirm_upload','sweep_stale_jobs','claim_cleanup_batch','request_delete_now','get_admin_kpis','mdify_set_updated_at',
+     'start_uploaded_job','finalize_job_outputs','finish_work_item','cleanup_is_due','claim_job_cleanup',
+     'begin_job_cleanup','finish_job_cleanup','fail_job_cleanup','settle_cancelled_jobs')
 
 union all
 
 select 'bucket', 'mdify-pro-files', '-', b.public, not b.public
   from storage.buckets b
  where b.id = 'mdify-pro-files'
+
+union all
+
+select 'audit_append_only', 'public.audit_logs', 'service_role',
+       has_table_privilege('service_role','public.audit_logs',p.privilege),
+       not has_table_privilege('service_role','public.audit_logs',p.privilege)
+  from (values ('UPDATE'),('DELETE'),('TRUNCATE')) p(privilege)
 
 order by ok, kind, object, role;

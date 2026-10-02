@@ -80,3 +80,12 @@ jobs:
       - run: npm ci --no-audit --no-fund
         working-directory: frontend
       - run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON tests/integration/postgres_recovery.mjs
+  edge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno check --config supabase/functions/cleanup-expired-jobs/deno.json --frozen supabase/functions/cleanup-expired-jobs/index.ts

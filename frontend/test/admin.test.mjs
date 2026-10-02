@@ -210,6 +210,7 @@ test('delete now removes every object of the job, including intermediate ones', 
 test('delete now cancels a running job first and keeps its files', async () => {
   const { pg, db } = await setup();
   const { id } = await seedJob(pg, db, { status: 'PROCESSING' });
+  await pg.query("insert into public.work_items(job_id,task_type,pool,status,lease_until) values($1,'CONVERT','normal','RUNNING',now() + interval '5 minutes')", [id]);
   const result = await deleteNow(db, SESSION, id);
   assert.equal(result.result, 'cancel_requested');
   assert.equal([...db.objects.keys()].filter((p) => p.startsWith(`jobs/${id}/`)).length, 4);

@@ -1,3 +1,4 @@
+import { deleteClaimedFiles } from '../../../supabase/functions/cleanup-expired-jobs/cleanup.mjs';
 // Server-only: data and actions behind /mdify-controller. Every function takes
 // the database client (lib/server/supabaseRest.js) so tests run it against the
 // real migrations on PGlite. Routes check the admin session first
@@ -190,40 +191,24 @@ export async function signFile(db, session, jobId, fileId, { purpose = 'download
 
 // ── Retention and deletion ─────────────────────────────────────────────────
 
-async function listTree(db, prefix, depth = 0) {
-  const paths = [];
-  for (let offset = 0; ; offset += 1000) {
-    const entries = (await db.listObjects(prefix, { limit: 1000, offset })) || [];
-    for (const entry of entries) {
-      const path = `${prefix}/${entry.name}`;
-      if (entry.id === null) {
-        if (depth < 4) paths.push(...(await listTree(db, path, depth + 1)));
-      } else {
-        paths.push(path);
-      }
-    }
-    if (entries.length < 1000) return paths;
-  }
-}
-
-/**
- * Removes every object under jobs/<id>/ (inputs, outputs and the intermediate
- * files of scanned PDFs and ZIPs), then records the deletion and forgets the
- * names. Storage first, metadata second: a failure leaves the job PARTIAL.
- */
+/** Claims the cleanup lease before Storage removal and records completion last. */
 export async function purgeJobFiles(db, jobId) {
   const id = assertJobId(jobId);
-  const registered = ((await db.select('file_objects', { job_id: `eq.${id}`, select: 'object_path,storage_status' })) || [])
-    .filter((f) => f.storage_status !== 'DELETED')
-    .map((f) => f.object_path);
-  await db.update('jobs', { job_id: `eq.${id}` }, { cleanup_state: 'DELETING' });
+  const job = await db.rpc('claim_job_cleanup', { p_job_id: id });
+  if (!job?.cleanup_token) throw new AdminError('Cleanup is already running or the job is not due', 409);
+  const args = { p_job_id: id, p_token: job.cleanup_token };
   try {
-    const paths = [...new Set([...(await listTree(db, `jobs/${id}`)), ...registered])];
-    for (let i = 0; i < paths.length; i += 100) await db.removeObjects(paths.slice(i, i + 100));
-    await db.rpc('mark_job_files_deleted', { p_job_id: id });
-    return { removed: paths.length };
-  } catch (err) {
-    await db.update('jobs', { job_id: `eq.${id}` }, { cleanup_state: 'PARTIAL', cleanup_last_error: String(err.message).slice(0, 500) });
+    const files = ((await db.select('file_objects', { job_id: `eq.${id}`, select: 'object_path,storage_status' })) || [])
+      .filter(f => f.storage_status !== 'DELETED');
+    const removed = await deleteClaimedFiles({ job, files,
+      guard: () => db.rpc('begin_job_cleanup', args),
+      list: (prefix, options) => db.listObjects(prefix, options),
+      remove: paths => db.removeObjects(paths),
+    });
+    if (!await db.rpc('finish_job_cleanup', args)) throw new Error('Cleanup lease lost');
+    return { removed };
+  } catch {
+    await db.rpc('fail_job_cleanup', args);
     throw new AdminError('Some files could not be deleted; cleanup will retry', 502);
   }
 }
@@ -236,6 +221,7 @@ export async function setRetention(db, session, jobId, mode, hours = null) {
   const result = await db.rpc('admin_set_retention', { p_job_id: id, p_mode: mode, p_hours: h });
   if (result === 'not_found') throw new AdminError('Unknown job', 404);
   if (result === 'files_deleted') throw new AdminError('Files for this job are already deleted', 409);
+  if (result === 'cleanup_in_progress') throw new AdminError('Cleanup has started; retention can no longer change', 409);
   await audit(db, session, `ADMIN_RETENTION_${mode}`, { jobId: id, details: h ? { hours: h } : {} });
   return { job_id: id, result };
 }
@@ -245,6 +231,7 @@ export async function deleteNow(db, session, jobId) {
   const id = assertJobId(jobId);
   const result = await db.rpc('request_delete_now', { p_job_id: id });
   if (result === 'not_found') throw new AdminError('Unknown job', 404);
+  if (result === 'cleanup_in_progress') throw new AdminError('Cleanup is already running', 409);
   let removed = null;
   if (result === 'due_now') ({ removed } = await purgeJobFiles(db, id));
   await audit(db, session, 'ADMIN_DELETE_NOW', { jobId: id, details: { result, removed } });
@@ -258,6 +245,10 @@ export async function deleteJob(db, session, jobId) {
   const job = rows?.[0];
   if (!job) throw new AdminError('Unknown job', 404);
   if (ACTIVE.has(job.status)) throw new AdminError('Cancel the job first (Delete now), then delete it', 409);
+  if (!job.files_deleted_at) {
+    const result = await db.rpc('request_delete_now', { p_job_id: id });
+    if (result !== 'due_now') throw new AdminError('Cleanup is already running', 409);
+  }
   const { removed } = job.files_deleted_at ? { removed: 0 } : await purgeJobFiles(db, id);
   await db.remove('jobs', { job_id: `eq.${id}` });
   await audit(db, session, 'ADMIN_DELETE_JOB', { jobId: id, details: { removed } });
