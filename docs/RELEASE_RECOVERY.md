@@ -41,3 +41,5 @@ where jobname = 'mdify-cleanup-expired-jobs';
 ```
 
 Wait for any in-flight invocation to finish before applying the migration. After deployment and the synthetic smoke check succeed, repeat the first query with `active := true`. Do not re-run the placeholder cron template against production without replacing its project reference and frontend URL.
+
+For production smoke checks, POST `{ "job_id": "<synthetic-job-uuid>" }` to the cleanup function with the existing cron secret. This uses only `claim_job_cleanup` for that job, skips global cancellation/stale-job sweeps and never falls back to a batch. A missing or ineligible target reports zero claims. Invalid targets return 400 before database access. The scheduled `{}` request retains its existing global batch behavior. Use a nonexistent UUID for a non-destructive authentication check. Keep the schedule paused until the scoped synthetic check and frontend rollout pass.

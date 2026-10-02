@@ -60,6 +60,17 @@ export async function deleteClaimedFiles({ job, files, list, remove, guard }) {
 export function createCleanupHandler({ env, createClient }) {
   return async req => {
     if (!equalSecret(req.headers.get('x-mdify-cron-secret') ?? '', env('MDIFY_CRON_SECRET') ?? '')) return json({ error: 'unauthorized' }, 401);
+    // A supplied job_id scopes verification to one job and never falls back to a batch.
+    let target;
+    try {
+      const text = await req.text();
+      const body = text ? JSON.parse(text) : {};
+      if (!body || Array.isArray(body) || typeof body !== 'object') throw new Error();
+      if (Object.hasOwn(body, 'job_id')) {
+        if (typeof body.job_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.job_id)) throw new Error();
+        target = body.job_id;
+      }
+    } catch { return json({ error: 'invalid cleanup request' }, 400); }
     let key = env('SUPABASE_SERVICE_ROLE_KEY');
     if (!key) { try { key = JSON.parse(env('SUPABASE_SECRET_KEYS') ?? '{}').default; } catch { /* missing key below */ } }
     if (!key) return json({ error: 'missing service key' }, 500);
@@ -71,12 +82,19 @@ export function createCleanupHandler({ env, createClient }) {
     let stage = 'client';
     try {
       db = createClient(env('SUPABASE_URL') ?? '', key);
-      stage = 'cancel';
-      await checked(db.rpc('settle_cancelled_jobs'), stage);
-      stage = 'sweep';
-      const swept = await checked(db.rpc('sweep_stale_jobs'), stage);
-      stage = 'claim';
-      const jobs = await checked(db.rpc('claim_cleanup_batch', { batch_size: batch }), stage);
+      let swept = [], jobs;
+      if (target) {
+        stage = 'claim';
+        const job = await checked(db.rpc('claim_job_cleanup', { p_job_id: target }), stage);
+        jobs = job ? [job] : [];
+      } else {
+        stage = 'cancel';
+        await checked(db.rpc('settle_cancelled_jobs'), stage);
+        stage = 'sweep';
+        swept = await checked(db.rpc('sweep_stale_jobs'), stage);
+        stage = 'claim';
+        jobs = await checked(db.rpc('claim_cleanup_batch', { batch_size: batch }), stage);
+      }
       let deleted = 0, failed = 0, bytes = 0;
       stage = 'cleanup';
       for (const job of jobs ?? []) {

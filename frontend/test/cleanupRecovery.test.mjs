@@ -196,3 +196,38 @@ test('Storage acknowledgement without actual removal never marks files deleted',
   assert.equal(retried.status,200); assert.equal((await retried.json()).deleted,1);
   assert.equal(db.objects.size,0);
 });
+
+const targetedRequest = job_id => new Request('https://edge.test', { method:'POST', headers:{ 'x-mdify-cron-secret':'fixture-cron' }, body:JSON.stringify({ job_id }) });
+
+test('targeted cron cleans only its job and never sweeps or claims a batch', async t => {
+  const { db, job, row } = await setup(t);
+  const other = await db.insert('jobs', { status:'COMPLETED', auto_delete_at:new Date(0).toISOString() });
+  const pending = await db.insert('jobs', { status:'CANCEL_REQUESTED' });
+  const handler = createCleanupHandler({ env, createClient:() => sdk(db, { settle_cancelled_jobs:true, sweep_stale_jobs:true, claim_cleanup_batch:true }) });
+  const response = await handler(targetedRequest(job.job_id));
+  assert.equal(response.status,200); assert.equal((await response.json()).deleted,1);
+  assert.equal((await row()).cleanup_state,'COMPLETE');
+  const [untouched] = await db.select('jobs',{ job_id:`eq.${other.job_id}` });
+  assert.equal(untouched.files_deleted_at,null); assert.equal(untouched.cleanup_token,null);
+  const [stillPending] = await db.select('jobs',{ job_id:`eq.${pending.job_id}` });
+  assert.equal(stillPending.status,'CANCEL_REQUESTED');
+  const missing = await handler(targetedRequest(crypto.randomUUID()));
+  assert.equal(missing.status,200); assert.equal((await missing.json()).claimed,0);
+  assert.equal((await db.select('jobs',{ job_id:`eq.${other.job_id}` }))[0].files_deleted_at,null);
+});
+
+test('invalid targets fail before database access and never broaden cleanup scope', async () => {
+  let called=false;
+  const handler=createCleanupHandler({ env, createClient:() => { called=true; } });
+  for(const body of ['{', 'null', '[]', '{"job_id":null}', '{"job_id":""}', '{"job_id":"not-a-uuid"}']) {
+    const response=await handler(new Request('https://edge.test',{ method:'POST', headers:{ 'x-mdify-cron-secret':'fixture-cron' }, body }));
+    assert.equal(response.status,400);
+  }
+  assert.equal(called,false);
+});
+
+test('targeted claim errors never fall back to the global batch', async t => {
+  const { db, job, row }=await setup(t);
+  const response=await createCleanupHandler({ env, createClient:() => sdk(db,{ claim_job_cleanup:true }) })(targetedRequest(job.job_id));
+  assert.equal(response.status,500); assert.equal((await row()).files_deleted_at,null); assert.equal(db.objects.size,1);
+});
