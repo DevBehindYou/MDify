@@ -14,3 +14,32 @@ The GitHub workflow runs in isolated synthetic environments and does not deploy 
 ## Expected recovery changes
 
 Upload activation, root enqueue and the queued event share one transaction after Storage metadata verification. Child expansion checks the parent attempt before writing. Completion, output rows and completion event share one transaction. Repeated terminal retrieval repairs missing output metadata left by the previous frontend. Malformed HTTP 200 JSON is treated as an infrastructure error.
+
+## Cleanup recovery release
+
+This release also requires `20261001010000_mdify_cleanup_recovery.sql`. It changes cleanup ownership and requires the updated Edge Function and frontend together. Vercel/Render deployments do **not** deploy Supabase SQL or Edge Functions.
+
+1. Leave this PR unmerged until the database and Edge release can be coordinated. Pause the cleanup cron and avoid admin deletion actions during the rollout. Record the currently deployed Edge revision and back up the database.
+2. Apply the cleanup migration in one transaction, then deploy `cleanup-expired-jobs` from this commit, including `cleanup.mjs`. Verify `MDIFY_CRON_SECRET` remains configured and `verify_jwt` remains false for the custom cron header. Never print the secret. `supabase/config.toml` persists this setting for CLI deployments. A Dashboard deployment must also disable the platform JWT check; a header-less request must reach our handler and return `{ "error": "unauthorized" }`, rather than a platform `UNAUTHORIZED_NO_AUTH_HEADER` response. CLI example: `supabase functions deploy cleanup-expired-jobs --project-ref ppmbqgecdbrezxedyeur --no-verify-jwt`.
+3. Wait for every Checks job, including Edge compilation and competing PostgreSQL cleanup claims. Confirm the production RPCs exist and run `supabase/tests/verify_permissions.sql` (every `ok` must be true) before merging/promoting the frontend. Verify the build includes the shared cleanup module.
+4. Use a synthetic completed job for an admin Delete now check and an expired synthetic job for an authorized cron check. Verify Storage is empty, files_deleted_at is set, only one owner finishes, and filenames/metadata are forgotten. An unauthorized cron request must return 401. A failed cleanup returns 500 and must not count the job as deleted.
+5. Re-enable the cleanup cron after these checks pass. On failure, leave the cron paused and fix forward. Rolling back only the frontend is safe for conversions, but old cleanup/admin code cannot honor ownership tokens; do not resume old deletion code against active new leases.
+
+A pending cleanup claim can be invalidated by KEEP/EXTEND. Once deletion starts, retention changes return 409 because removed objects cannot be restored. Expired DELETING leases are reclaimed with a new token; stale owners cannot finish or overwrite recovery state. Requests have a 30 second timeout, well below the 30 minute lease. Excessive folder depth fails visibly rather than silently omitting objects.
+
+## Verified atomic release (PR #3)
+
+All five GitHub Checks jobs and Vercel preview checks passed. After the owner applied the atomic migration, all three RPC availability probes succeeded. Synthetic production conversions passed for TXT, PNG OCR, scanned PDF (3 work items), and ZIP (3 registered outputs). Downloads, repeated starts and one completion event were verified; synthetic Storage objects were removed afterward. These checks validate the exercised paths, not every possible production input or provider failure.
+
+To pause the existing cleanup schedule in the MDify SQL Editor:
+
+```sql
+select cron.alter_job(jobid, active := false)
+from cron.job where jobname = 'mdify-cleanup-expired-jobs';
+select jobname, active from cron.job
+where jobname = 'mdify-cleanup-expired-jobs';
+```
+
+Wait for any in-flight invocation to finish before applying the migration. After deployment and the synthetic smoke check succeed, repeat the first query with `active := true`. Do not re-run the placeholder cron template against production without replacing its project reference and frontend URL.
+
+For production smoke checks, POST `{ "job_id": "<synthetic-job-uuid>" }` to the cleanup function with the existing cron secret. This uses only `claim_job_cleanup` for that job, skips global cancellation/stale-job sweeps and never falls back to a batch. A missing or ineligible target reports zero claims. Invalid targets return 400 before database access. The scheduled `{}` request retains its existing global batch behavior. Use a nonexistent UUID for a non-destructive authentication check. Keep the schedule paused until the scoped synthetic check and frontend rollout pass.

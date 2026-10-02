@@ -29,3 +29,25 @@ assert.equal(completed.filter(s=>s==='COMPLETED').length,1);
 assert.equal(await sql(`select count(*) from public.file_objects where job_id='${id}' and kind='OUTPUT'`),'1');
 assert.equal(await sql(`select count(*) from public.job_events where job_id='${id}' and event_type='COMPLETED'`),'1');
 console.log('PostgreSQL: concurrent starts, child expansion and finalization passed');
+
+const cleanupId='00000000-0000-4000-8000-000000000002';
+await sql(`insert into public.jobs(job_id,status,auto_delete_at) values('${cleanupId}','COMPLETED',now()-interval '1 hour');`);
+const claims=await Promise.all(Array.from({length:8},()=>sql(`select row_to_json(j) from public.claim_cleanup_batch(1) j`)));
+const owners=claims.filter(Boolean).map(JSON.parse);
+assert.equal(owners.length,1);
+const old=owners[0];
+assert.equal(await sql(`select public.begin_job_cleanup('${cleanupId}','${old.cleanup_token}')`),'t');
+await sql(`update public.jobs set cleanup_lease_until=now()-interval '1 minute' where job_id='${cleanupId}'`);
+const next=JSON.parse(await sql(`select row_to_json(j) from public.claim_cleanup_batch(1) j`));
+assert.notEqual(next.cleanup_token,old.cleanup_token);
+const stale=await Promise.all(Array.from({length:8},()=>sql(`select public.finish_job_cleanup('${cleanupId}','${old.cleanup_token}')`)));
+assert.ok(stale.every(r=>r==='f'));
+assert.equal(await sql(`select public.begin_job_cleanup('${cleanupId}','${next.cleanup_token}')`),'t');
+assert.equal(await sql(`select public.finish_job_cleanup('${cleanupId}','${next.cleanup_token}')`),'t');
+console.log('PostgreSQL: competing cleanup claims and stale owner rejection passed');
+
+const permissionSql=fs.readFileSync(`${MIGRATIONS_DIR}/../tests/verify_permissions.sql`,'utf8').replace(/;\s*$/,'');
+const permissionRows=(await sql(`select row_to_json(v) from (${permissionSql}) v`)).split('\n').filter(Boolean).map(JSON.parse);
+assert.ok(permissionRows.length>0);
+assert.ok(permissionRows.every(r=>r.ok===true),JSON.stringify(permissionRows.filter(r=>!r.ok)));
+console.log('PostgreSQL: browser-role isolation, invoker RPCs and append-only audit checks passed');
