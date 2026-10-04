@@ -25,6 +25,21 @@ titles and their following blank line. No source text is truncated.
 The converter joins these parts automatically for its preview, copy and
 Markdown export, and reports a download error if a part is missing.
 
+Storage-backed archive tasks also limit each temporary JSON array and each
+OCR result read to 4 MiB. Temporary JSON counts UTF-8, escaping and array
+delimiters; a single record that cannot fit is rejected with HTTP 413 before
+materialized images or temporary files are uploaded. Merge reads stop at
+`MAX_ARCHIVE_OUTPUT_BYTES` in total (40 MiB by default), and entries remain
+limited to `MAX_ARCHIVE_ENTRIES`. Missing or corrupt temporary arrays return
+409 instead of producing a successful incomplete result.
+
+The final index and manifest each fit within 4 MiB. The total final output
+budget includes all Markdown parts, continuation titles, index and manifest;
+these are checked before any final upload. Results exceeding these limits
+return 413 and ask the user to split the archive into smaller ZIPs. Existing
+JSON-array partials remain compatible; no database migration is needed.
+These per-job bounds do not reserve or guarantee total bucket capacity.
+
 ## Safety rules
 
 - Entry names are normalised. Absolute paths, drive letters, `..` and
