@@ -1,3 +1,4 @@
+import { admitPublicRequest, admissionResponse } from '../../../../../lib/server/publicAdmission';
 import { NextResponse } from 'next/server';
 import { createSupabase, supabaseConfig } from '../../../../../lib/server/supabaseRest';
 import { JobError, advanceJob } from '../../../../../lib/server/jobService';
@@ -9,7 +10,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 // Called repeatedly by the browser while a multi-part job (scanned PDF,
 // archive) runs: one scheduling pass for this job, then its status.
-export async function POST(_request, { params }) {
+export async function POST(request, { params }) {
   const config = supabaseConfig();
   const secret = process.env.BACKEND_SHARED_SECRET;
   if (!config || !secret) {
@@ -20,9 +21,12 @@ export async function POST(_request, { params }) {
   }
 
   try {
+    await admitPublicRequest(request, 'advance');
     const body = await advanceJob(createSupabase(config), params.id, { secret });
     return NextResponse.json(body, { headers: { 'Cache-Control': 'no-store' } });
   } catch (err) {
+    const denied = admissionResponse(err);
+    if (denied) return denied;
     if (err instanceof JobError) return NextResponse.json({ detail: err.message }, { status: err.status });
     console.error('[jobs/advance]', err.message);
     return NextResponse.json({ detail: 'Could not check the conversion. Retrying…' }, { status: 502 });

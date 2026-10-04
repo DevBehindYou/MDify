@@ -46,6 +46,32 @@ assert.equal(await sql(`select public.begin_job_cleanup('${cleanupId}','${next.c
 assert.equal(await sql(`select public.finish_job_cleanup('${cleanupId}','${next.cleanup_token}')`),'t');
 console.log('PostgreSQL: competing cleanup claims and stale owner rejection passed');
 
+// Independent connections race the same global/client budgets, with refill
+// frozen in the future so the exact burst remains deterministic in CI.
+const key=n=>n.toString(16).padStart(64,'0');
+await sql(`insert into public.public_request_budgets values('wake','*',3,clock_timestamp()+interval '1 hour','infinity');`);
+const globalStarted=Date.now();
+const admitted=await Promise.all(Array.from({length:12},(_,i)=>sql(`select public.admit_public_request('wake','${key(i+1)}')->>'allowed'`)));
+const globalAllowed=admitted.filter(r=>r==='true').length;
+assert.ok(globalAllowed>=3 && globalAllowed<=3+Math.floor((Date.now()-globalStarted)/2000));
+assert.equal(await sql(`select count(*) from public.public_request_budgets where scope='wake' and client_key<>'*'`),String(globalAllowed));
+await sql(`insert into public.public_request_budgets values('create','*',60,clock_timestamp()+interval '1 hour','infinity');
+insert into public.public_request_budgets values('create','${key(20)}',10,clock_timestamp()+interval '1 hour',clock_timestamp()+interval '1 hour');`);
+const clientStarted=Date.now();
+const clientBurst=await Promise.all(Array.from({length:12},()=>sql(`select public.admit_public_request('upload','${key(20)}')->>'allowed'`)));
+const clientAllowed=clientBurst.filter(r=>r==='true').length;
+assert.ok(clientAllowed>=10 && clientAllowed<=10+Math.floor((Date.now()-clientStarted)/6000));
+const multipart=await Promise.all(Array.from({length:12},(_,i)=>sql(`select public.admit_public_request('convert','${key(i+40)}')`)));
+const leases=multipart.map(JSON.parse).filter(r=>r.allowed);
+assert.equal(leases.length,2);
+assert.equal(await sql(`select count(*) from public.public_multipart_leases`),'2');
+await sql(`update public.public_multipart_leases set expires_at=clock_timestamp()-interval '1 second' where lease_id='${leases[0].lease_id}';`);
+const recovered=JSON.parse(await sql(`select public.admit_public_request('convert','${key(99)}')`));
+assert.equal(recovered.allowed,true);
+assert.equal(await sql(`select public.release_public_multipart('${leases[0].lease_id}')`),'f');
+assert.equal(await sql(`select count(*) from public.public_multipart_leases`),'2');
+console.log('PostgreSQL: shared global/client budgets, competing multipart leases and expiry recovery passed');
+
 const permissionSql=fs.readFileSync(`${MIGRATIONS_DIR}/../tests/verify_permissions.sql`,'utf8').replace(/;\s*$/,'');
 const permissionRows=(await sql(`select row_to_json(v) from (${permissionSql}) v`)).split('\n').filter(Boolean).map(JSON.parse);
 assert.ok(permissionRows.length>0);

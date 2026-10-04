@@ -113,8 +113,7 @@ async function convertViaStorage(file, profile, signal, onProgress) {
 
   onProgress?.(UPLOADED_PROGRESS);
 
-  const { res: started, data: first } = await request(`/api/jobs/${job.job_id}/start`, { method: 'POST', signal });
-  if (!started.ok) throw failure(started, first);
+  const first = await startUploadedJob(job.job_id, { signal });
   const status = await waitForJob(job.job_id, first, { signal, onProgress });
   if (status.status !== 'COMPLETED') {
     throw new ConversionError(status.detail || status.error?.message || 'Conversion failed', { status: 422 });
@@ -141,6 +140,34 @@ const sleep = (ms, signal) =>
       { once: true }
     );
   });
+
+function retryDelay(res, fallback) {
+  const value = res?.headers?.get('Retry-After');
+  const seconds = value && /^\d+$/.test(value) ? Number(value) : 0;
+  return Math.max(fallback, Math.min(330, seconds) * 1000);
+}
+
+/** Retry an already uploaded job's idempotent start without uploading again. */
+export async function startUploadedJob(jobId, { signal, fetchImpl = fetch, sleepImpl = sleep, now = Date.now } = {}) {
+  const deadline = now() + JOB_WAIT_LIMIT_MS;
+  for (let attempt = 0; ; attempt++) {
+    let res;
+    let data = {};
+    try {
+      res = await fetchImpl(`/api/jobs/${jobId}/start`, { method: 'POST', cache: 'no-store', signal });
+      data = await res.json().catch(() => ({}));
+    } catch (err) {
+      if (err?.name === 'AbortError') throw err;
+      res = null;
+    }
+    if (res?.ok) return data;
+    if (res && res.status < 500 && res.status !== 429) throw failure(res, data);
+    if (attempt >= 8 || now() >= deadline) {
+      throw new ConversionError(data.detail || 'The uploaded file could not be started. Please try again later.', { status: res?.status, network: !res });
+    }
+    await sleepImpl(Math.min(deadline - now(), retryDelay(res, Math.min(15_000, 1000 * 2 ** attempt))), signal);
+  }
+}
 
 /**
  * Keeps a multi-part job (scanned PDF, archive) moving: each /advance call
@@ -175,7 +202,7 @@ export async function waitForJob(jobId, first, { signal, onProgress, fetchImpl =
     } else if (!res || res.status >= 500 || res.status === 429) {
       failures += 1;
       if (failures > 8) throw new ConversionError(UNREACHABLE, { network: !res });
-      delay = Math.min(15_000, 1000 * 2 ** failures);
+      delay = retryDelay(res, Math.min(15_000, 1000 * 2 ** failures));
     } else {
       throw failure(res, data);
     }
