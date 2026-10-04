@@ -1,6 +1,7 @@
 """Archive inspection, safety and output rendering (app/archive.py)."""
 
 import json
+import re
 import zipfile
 
 import pytest
@@ -191,6 +192,49 @@ def test_large_results_split_at_file_boundaries(monkeypatch):
     assert all(p.count("## `") >= 1 for p in parts)
     assert parts[1].startswith(f"# P (part 2 of {len(parts)})")
     assert "".join(parts).count("## `") == 6
+    assert all(len(p.encode("utf-8")) <= 200 for p in parts)
+
+
+@pytest.mark.parametrize("body", [
+    "x" * 2500,
+    "漢字🙂" * 300,
+    "a\u0301" * 900,
+    "line one\r\nline two\r\n" * 100,
+    "```python\n" + "print('漢字🙂')\n" * 180 + "```\n",
+])
+def test_one_large_file_splits_without_losing_utf8_text(monkeypatch, body):
+    monkeypatch.setattr(archive, "PART_BYTES", 256)
+    content = "# Project\n\n## `large.txt`\n\n" + body
+    parts = archive.split_parts(content, "資料🙂")
+    assert len(parts) > 1
+    assert all(len(part.encode("utf-8")) <= 256 for part in parts)
+    restored = parts[0] + "".join(
+        re.sub(r"\A# 資料🙂 \(part \d+ of \d+\)\n\n", "", p) for p in parts[1:]
+    )
+    assert restored == content
+
+
+def test_continuation_titles_fit_the_part_budget(monkeypatch):
+    monkeypatch.setattr(archive, "PART_BYTES", 200)
+    content = "## `one.txt`\n" + "x" * 2000
+    parts = archive.split_parts(content, "題" * 20)
+    assert all(len(part.encode("utf-8")) <= 200 for part in parts)
+    assert parts[1].startswith(f"# {'題' * 20} (part 2 of {len(parts)})\n\n")
+
+
+def test_real_part_limit_bounds_one_oversized_entry():
+    content = "## `large.txt`\n\n" + "漢🙂" * (archive.PART_BYTES // 7 + 100)
+    parts = archive.split_parts(content, "Large")
+    assert len(parts) == 2
+    assert all(len(part.encode("utf-8")) <= archive.PART_BYTES for part in parts)
+    prefix = "# Large (part 2 of 2)\n\n"
+    assert parts[0] + parts[1].removeprefix(prefix) == content
+
+
+@pytest.mark.parametrize("content", ["", "a" * 200, "漢" * 66])
+def test_small_results_are_unchanged(monkeypatch, content):
+    monkeypatch.setattr(archive, "PART_BYTES", 200)
+    assert archive.split_parts(content, "P") == [content]
 
 
 def test_unsafe_entry_names_are_escaped_in_tables():
