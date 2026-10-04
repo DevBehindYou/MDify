@@ -21,7 +21,9 @@ with fns(sig) as (
     ('public.settle_cancelled_jobs()'),
     ('public.admit_public_request(text,text)'),
     ('public.release_public_multipart(uuid)'),
-    ('public.prune_public_admission()')
+    ('public.prune_public_admission()'),
+    ('public.guard_active_job_capacity()'),
+    ('public.create_upload_job(text,text,text,bigint,text,text,text,text)')
 ),
 roles(role, should_execute) as (
   values ('anon', false), ('authenticated', false), ('service_role', true)
@@ -48,7 +50,7 @@ select 'security_definer', p.proname, '-', p.prosecdef, not p.prosecdef
  where n.nspname = 'public'
    and p.proname in ('confirm_upload','sweep_stale_jobs','claim_cleanup_batch','request_delete_now','get_admin_kpis','mdify_set_updated_at',
      'start_uploaded_job','finalize_job_outputs','finish_work_item','cleanup_is_due','claim_job_cleanup',
-     'begin_job_cleanup','finish_job_cleanup','fail_job_cleanup','settle_cancelled_jobs','admit_public_request','release_public_multipart','prune_public_admission')
+     'begin_job_cleanup','finish_job_cleanup','fail_job_cleanup','settle_cancelled_jobs','admit_public_request','release_public_multipart','prune_public_admission','guard_active_job_capacity','create_upload_job')
 
 union all
 

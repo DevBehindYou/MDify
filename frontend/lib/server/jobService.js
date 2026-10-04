@@ -1,6 +1,6 @@
 // Server-only job lifecycle on Supabase Storage + Postgres.
 //
-//   createUpload → storage budget check → jobs row UPLOADING + file_objects
+//   createUpload → storage estimate + atomic active-job admission → UPLOADING + file_objects
 //                  INPUT PENDING + signed upload URL (bytes go straight to Storage)
 //   startJob     → confirm_upload() (48 h deadline) → enqueue_root() → first
 //                  scheduling pass inline, so small files finish in this call
@@ -28,10 +28,11 @@ const FOOTPRINT = { DOCUMENT: 2, IMAGE: 2, PDF: 3, ARCHIVE: 3 };
 const USAGE_CACHE_MS = 15_000;
 
 export class JobError extends Error {
-  constructor(message, status) {
+  constructor(message, status, { retryAfter = null } = {}) {
     super(message);
     this.name = 'JobError';
     this.status = status;
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -91,7 +92,7 @@ export async function createUpload(db, { filename, size, contentType, profile, e
   const { base, ext } = splitFileName(filename);
   const pool = poolForExtension(ext);
   if (!pool) throw new JobError(`Unsupported file format: .${ext || 'unknown'}`, 400);
-  if (!Number.isFinite(size) || size <= 0) throw new JobError('The file is empty', 400);
+  if (!Number.isSafeInteger(size) || size <= 0) throw new JobError('The file is empty', 400);
   if (size > maxFileSizeFor(ext)) throw new JobError(sizeLimitMessage(ext), 413);
   if (getPoolConfig(env)[pool].length === 0) {
     throw new JobError(`.${ext} conversion isn't available right now`, 503);
@@ -99,27 +100,24 @@ export async function createUpload(db, { filename, size, contentType, profile, e
   const sourceType = sourceTypeFor(ext);
   await checkStorageBudget(db, { size, sourceType, env });
 
-  const job = await db.insert('jobs', {
-    status: 'UPLOADING',
-    workload_type: WORKLOAD_DB[pool],
-    source_type: sourceType,
-    profile: PROFILE_DB[profile] || 'standard',
-    source_extension: ext,
-    source_mime: contentType || null,
-    original_filename: base,
-  });
+  let job;
+  try {
+    job = await db.rpc('create_upload_job', {
+      p_bucket: db.bucket, p_filename: base, p_extension: ext, p_size: size,
+      p_mime: contentType || null, p_profile: PROFILE_DB[profile] || 'standard',
+      p_source_type: sourceType, p_workload_type: WORKLOAD_DB[pool],
+    });
+  } catch {
+    // Missing migration or unavailable capacity must never fall back to inserts.
+    throw new JobError('Uploads are temporarily unavailable. Please retry shortly.', 503, { retryAfter: 30 });
+  }
+  if (job?.allowed === false) {
+    throw new JobError('MDify is handling many jobs. Please try again shortly.', 503, { retryAfter: 30 });
+  }
+  if (job?.allowed !== true || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(job.job_id || '')) {
+    throw new JobError('Uploads are temporarily unavailable. Please retry shortly.', 503, { retryAfter: 30 });
+  }
   const path = inputPath(job.job_id, ext);
-  await db.insert('file_objects', {
-    job_id: job.job_id,
-    bucket: db.bucket,
-    object_path: path,
-    kind: 'INPUT',
-    original_filename: base,
-    extension: ext,
-    mime_type: contentType || null,
-    size_bytes: size,
-    storage_status: 'PENDING',
-  });
   const upload = await db.signedUploadUrl(path);
   return { job_id: job.job_id, upload_url: upload.url, object_path: path };
 }
