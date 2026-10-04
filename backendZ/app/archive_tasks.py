@@ -38,6 +38,8 @@ logger = logging.getLogger("mdify.archive")
 
 WORKERS = 4
 PARTIAL_BYTES = archive.PART_BYTES
+METADATA_BYTES = archive.PART_BYTES
+MAX_PARTIAL_PARTS = 100
 IMAGE_MIME = {
     "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp",
     "gif": "image/gif", "bmp": "image/bmp", "tif": "image/tiff", "tiff": "image/tiff",
@@ -56,7 +58,7 @@ class MergeRequest(BaseModel):
     output_path: str = Field(max_length=200)
     original_filename: str = Field(max_length=1024)
     profile: str = "Standard"
-    partial_paths: list[str] = Field(max_length=100)
+    partial_paths: list[str] = Field(min_length=1, max_length=MAX_PARTIAL_PARTS)
     ocr: list[OcrRef] = Field(default_factory=list, max_length=archive.MAX_OCR_IMAGES)
     source_bytes: int | None = None
 
@@ -84,8 +86,37 @@ def _out_dir(job_id: str) -> str:
     return f"jobs/{job_id}/output/"
 
 
+def resource_limit() -> HTTPException:
+    return HTTPException(status_code=413, detail="Archive results exceed the processing limit. Split this archive into smaller ZIP files.")
+
+
+def partial_blobs(entries: list[archive.Entry]) -> list[bytes]:
+    """Pack the existing JSON array format by actual encoded bytes, including escapes."""
+    parts, current, size, total = [], [], 2, 0
+    for entry in entries:
+        # Avoid serializing an already oversized content field (JSON can only grow it).
+        if entry.content is not None and len(entry.content.encode("utf-8")) > PARTIAL_BYTES - 2:
+            raise resource_limit()
+        record = json.dumps(entry.public(), ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        if len(record) + 2 > PARTIAL_BYTES:
+            raise resource_limit()
+        added = len(record) + bool(current)
+        if current and size + added > PARTIAL_BYTES:
+            parts.append(b"[" + b",".join(current) + b"]")
+            total += size
+            current, size, added = [], 2, len(record)
+        current.append(record)
+        size += added
+        if total + size > archive.MAX_OUTPUT_BYTES or len(parts) >= MAX_PARTIAL_PARTS:
+            raise resource_limit()
+    parts.append(b"[" + b",".join(current) + b"]")
+    return parts
+
+
 def write_outputs(store, *, job_id: str, name: str, profile: str, source_bytes: int,
                   entries: list[archive.Entry], ocr_texts: dict[str, str | None], settings) -> dict:
+    if len(entries) > archive.MAX_ENTRIES:
+        raise resource_limit()
     stem, _ext = split_name(name)
     title = title_from_stem(stem)
     content, words, tokens = finalize_markdown(
@@ -96,6 +127,8 @@ def write_outputs(store, *, job_id: str, name: str, profile: str, source_bytes: 
         engine=archive.ENGINE,
         profile=profile if profile in PROFILES else "Standard",
     )
+    if len(content.encode("utf-8")) > archive.MAX_OUTPUT_BYTES:
+        raise resource_limit()
     parts = archive.split_parts(content, title)
     out = _out_dir(job_id)
     files: list[tuple[str, bytes, str, str]] = []
@@ -108,6 +141,13 @@ def write_outputs(store, *, job_id: str, name: str, profile: str, source_bytes: 
                   "text/markdown; charset=utf-8", "PROJECT_INDEX.md"))
     files.append((f"{out}manifest.json", archive.manifest(job_id, name, source_bytes, entries, ocr_texts).encode("utf-8"),
                   "application/json; charset=utf-8", "manifest.json"))
+
+    # Preflight every final object and their total before the first write. This
+    # includes index/manifest bytes and continuation headings, not just source text.
+    if (any(len(f[1]) > archive.PART_BYTES for f in files[:-2])
+            or any(len(f[1]) > METADATA_BYTES for f in files[-2:])
+            or sum(len(f[1]) for f in files) > archive.MAX_OUTPUT_BYTES):
+        raise resource_limit()
 
     try:
         with ThreadPoolExecutor(max_workers=WORKERS) as pool:
@@ -197,19 +237,10 @@ def register(app: FastAPI) -> None:
             return {**base, **result, "mode": "single", "duration_ms": duration_ms()}
 
         # Converted entries wait in Storage for the merge, in parts <= 4 MB.
-        records = [e.public() for e in entries]
-        parts, current, size = [], [], 2
-        for record in records:
-            blob = len(json.dumps(record, ensure_ascii=False).encode("utf-8")) + 1
-            if current and size + blob > PARTIAL_BYTES:
-                parts.append(current)
-                current, size = [], 2
-            current.append(record)
-            size += blob
-        parts.append(current)
+        parts = partial_blobs(entries)
         partial_paths = [f"jobs/{job_id}/nodes/archive-{i}/partial.json" for i in range(1, len(parts) + 1)]
         uploads += [
-            (path, json.dumps(chunk, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
+            (path, chunk, "application/json; charset=utf-8")
             for path, chunk in zip(partial_paths, parts)
         ]
         try:
@@ -236,29 +267,63 @@ def register(app: FastAPI) -> None:
         started = time.perf_counter()
         name = sanitize_filename(req.original_filename)
 
+        if (len(set(req.partial_paths)) != len(req.partial_paths)
+                or len({o.node_id for o in req.ocr}) != len(req.ocr)
+                or len({o.output_path for o in req.ocr}) != len(req.ocr)):
+            raise HTTPException(status_code=409, detail="Archive contents are invalid; the job has to start again")
+        read_bytes = 0
+
         def fetch(path: str) -> str | None:
+            nonlocal read_bytes
             try:
-                return store.download(path, archive.MAX_OUTPUT_BYTES).decode("utf-8", "replace")
+                data = store.download(path, PARTIAL_BYTES)
             except StorageError as err:
+                if err.status == 413:
+                    raise resource_limit() from None
                 if err.transient:
                     raise
                 return None
-
-        try:
-            with ThreadPoolExecutor(max_workers=WORKERS) as pool:
-                partial_texts = list(pool.map(fetch, req.partial_paths))
-                ocr_values = list(pool.map(fetch, [o.output_path for o in req.ocr]))
-        except StorageError:
-            raise HTTPException(status_code=503, detail="Storage temporarily unavailable") from None
-        if any(text is None for text in partial_texts):
-            raise HTTPException(status_code=409, detail="Archive contents are missing; the job has to start again")
+            # Also check the returned bytes for alternate Storage implementations.
+            read_bytes += len(data)
+            if len(data) > PARTIAL_BYTES or read_bytes > archive.MAX_OUTPUT_BYTES:
+                raise resource_limit()
+            try:
+                return data.decode("utf-8")
+            except UnicodeDecodeError:
+                raise HTTPException(status_code=409, detail="Archive contents are invalid; the job has to start again") from None
 
         fields = set(archive.Entry.__dataclass_fields__) - {"data"}
-        entries = [
-            archive.Entry(**{k: v for k, v in record.items() if k in fields})
-            for text in partial_texts
-            for record in json.loads(text)
-        ]
+        entries = []
+        try:
+            # Read/validate one bounded object at a time. A parallel map previously
+            # retained every completed response before checking the aggregate size.
+            for path in req.partial_paths:
+                text = fetch(path)
+                if text is None:
+                    raise HTTPException(status_code=409, detail="Archive contents are missing; the job has to start again")
+                try:
+                    records = json.loads(text)
+                    if not isinstance(records, list):
+                        raise ValueError()
+                    if len(entries) + len(records) > archive.MAX_ENTRIES:
+                        raise resource_limit()
+                    for record in records:
+                        if (not isinstance(record, dict)
+                                or any(not isinstance(record.get(k), str) for k in ("path", "node_type", "classification", "node_id"))
+                                or record.get("status") not in {"DONE", "SKIPPED", "FAILED", "PENDING"}
+                                or any(record.get(k) is not None and not isinstance(record[k], str)
+                                       for k in ("engine", "skip_reason", "language", "content"))
+                                or any(type(record.get(k)) is not int or record[k] < 0 for k in ("size", "depth"))):
+                            raise ValueError()
+                        uuid.UUID(record["node_id"])
+                        entries.append(archive.Entry(**{k: v for k, v in record.items() if k in fields}))
+                except (ValueError, TypeError):
+                    raise HTTPException(status_code=409, detail="Archive contents are invalid; the job has to start again") from None
+            if len({e.node_id for e in entries}) != len(entries):
+                raise HTTPException(status_code=409, detail="Archive contents are invalid; the job has to start again")
+            ocr_values = [fetch(o.output_path) for o in req.ocr]
+        except StorageError:
+            raise HTTPException(status_code=503, detail="Storage temporarily unavailable") from None
         ocr_texts = {o.node_id: text for o, text in zip(req.ocr, ocr_values)}
         result = write_outputs(store, job_id=job_id, name=name, profile=req.profile,
                                source_bytes=req.source_bytes or 0, entries=entries, ocr_texts=ocr_texts, settings=settings)
