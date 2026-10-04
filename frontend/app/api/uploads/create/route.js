@@ -37,7 +37,10 @@ export async function POST(request) {
     });
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
-    if (err instanceof JobError) return NextResponse.json({ detail: err.message }, { status: err.status });
+    if (err instanceof JobError) return NextResponse.json({ detail: err.message }, {
+      status: err.status,
+      headers: { 'Cache-Control': 'no-store', ...(err.retryAfter ? { 'Retry-After': String(err.retryAfter) } : {}) },
+    });
     console.error('[uploads/create]', err.message);
     return NextResponse.json({ detail: 'Could not start the upload. Please retry.' }, { status: 502 });
   }

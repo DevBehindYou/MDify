@@ -77,3 +77,18 @@ const permissionRows=(await sql(`select row_to_json(v) from (${permissionSql}) v
 assert.ok(permissionRows.length>0);
 assert.ok(permissionRows.every(r=>r.ok===true),JSON.stringify(permissionRows.filter(r=>!r.ok)));
 console.log('PostgreSQL: browser-role isolation, invoker RPCs and append-only audit checks passed');
+
+// The trigger also protects older frontends that still insert jobs directly.
+await sql(`insert into public.jobs(status) select 'UPLOADING' from generate_series(1,31);`);
+const uploadCapacity=await Promise.all(Array.from({length:8},()=>sql(`select public.create_upload_job('mdify-pro-files','fixture.txt','txt',12,null,'standard','DOCUMENT','NORMAL')`)));
+const uploadResults=uploadCapacity.map(JSON.parse);
+assert.equal(uploadResults.filter(r=>r.allowed).length,1);
+assert.equal(await sql(`select count(*) from public.jobs where status in ('UPLOADING','QUEUED','PROCESSING','CANCEL_REQUESTED')`),'32');
+const acceptedJob=uploadResults.find(r=>r.allowed).job_id;
+assert.equal(await sql(`select count(*) from public.file_objects where job_id='${acceptedJob}'`),'1');
+await sql(`update public.jobs set status='COMPLETED' where job_id='${acceptedJob}'`);
+const legacyCapacity=await Promise.allSettled(Array.from({length:8},()=>sql(`insert into public.jobs(status) values('UPLOADING') returning job_id`)));
+assert.equal(legacyCapacity.filter(r=>r.status==='fulfilled').length,1);
+assert.ok(legacyCapacity.filter(r=>r.status==='rejected').every(r=>/handling many jobs/.test(r.reason.stderr)));
+assert.equal(await sql(`select count(*) from public.jobs where status in ('UPLOADING','QUEUED','PROCESSING','CANCEL_REQUESTED')`),'32');
+console.log('PostgreSQL: competing atomic upload admissions and legacy inserts respect active-job capacity');

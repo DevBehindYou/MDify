@@ -89,3 +89,21 @@ test('a successful peer retry conservatively retains the lease for the uncertain
   assert.equal((await(await route('convert')).POST(multipart())).status,200);
   assert.equal(attempts,2);assert.equal(released,false);
 }));
+
+test('full or missing active-job admission returns safe Retry-After without signing an upload',async()=>isolated(async()=>{
+ const handler=await route('uploads/create');
+ for(const unavailable of [false,true]){
+  const calls=[];
+  globalThis.fetch=async(url)=>{
+   calls.push(url);
+   if(url.endsWith('admit_public_request'))return json({allowed:true,lease_id:null});
+   if(url.endsWith('storage_usage_bytes'))return json(0);
+   if(url.endsWith('create_upload_job'))return unavailable?json({message:'private missing function'},404):json({allowed:false,retry_after:30});
+   assert.fail('Unexpected Storage or database call: '+url);
+  };
+  const res=await handler.POST(uploadRequest(JSON.stringify({filename:'fixture.txt',size:12})));
+  assert.equal(res.status,503);assert.equal(res.headers.get('Retry-After'),'30');
+  assert.equal(res.headers.get('Cache-Control'),'no-store');assert.doesNotMatch(await res.text(),/private/);
+  assert.ok(calls.some(u=>u.endsWith('create_upload_job')));
+ }
+}));
