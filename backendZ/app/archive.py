@@ -19,6 +19,7 @@ import time
 import unicodedata
 import uuid
 import zipfile
+from bisect import bisect_right
 from dataclasses import asdict, dataclass, field
 
 from app.common.errors import ConversionRejected
@@ -377,18 +378,42 @@ def combined_body(entries: list[Entry], ocr_texts: dict[str, str | None]) -> str
 
 
 def split_parts(content: str, title: str) -> list[str]:
-    """Cuts at '## ' file headings into parts of at most PART_BYTES."""
-    if len(content.encode("utf-8")) <= PART_BYTES:
+    """Bounds encoded parts, preferring file headings and then line endings.
+
+    A file larger than the part budget continues across parts without losing
+    text. Removing continuation titles and concatenating recovers the input.
+    """
+    data = content.encode("utf-8")
+    if len(data) <= PART_BYTES:
         return [content]
-    chunks = re.split(r"(?m)^(?=## `)", content)
-    parts, current = [], ""
-    for chunk in chunks:
-        if current and len((current + chunk).encode("utf-8")) > PART_BYTES:
-            parts.append(current)
-            current = ""
-        current += chunk
-    if current:
-        parts.append(current)
+
+    # At least one input byte is consumed per part, so len(data) bounds both
+    # numbers in a continuation title. Reserve its UTF-8 size before splitting.
+    digits = "9" * len(str(len(data)))
+    title_bytes = len(f"# {title} (part {digits} of {digits})\n\n".encode("utf-8"))
+    continuation_budget = PART_BYTES - title_bytes
+    if continuation_budget < 4:
+        raise ValueError("Archive part budget must fit its title and a UTF-8 character")
+
+    headings = [m.start() for m in re.finditer(rb"(?m)^## `", data)]
+    parts, start = [], 0
+    while start < len(data):
+        budget = PART_BYTES if not parts else continuation_budget
+        end = min(start + budget, len(data))
+        if end < len(data):
+            # Do not separate a multibyte code point from its continuation bytes.
+            while data[end] & 0xC0 == 0x80:
+                end -= 1
+            heading_index = bisect_right(headings, end) - 1
+            if heading_index >= 0 and headings[heading_index] > start:
+                end = headings[heading_index]
+            else:
+                newline = data.rfind(b"\n", start, end)
+                # Avoid a tiny header-only part when one long line follows it.
+                if newline >= start + budget // 2:
+                    end = newline + 1
+        parts.append(data[start:end].decode("utf-8"))
+        start = end
     total = len(parts)
     return [p if i == 0 else f"# {title} (part {i + 1} of {total})\n\n{p}" for i, p in enumerate(parts)]
 

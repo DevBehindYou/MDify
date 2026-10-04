@@ -31,6 +31,11 @@
   --lens-border: #3b82f6;
   --wf-border: #2a2a32;
   --wf-card-bg: #111115;
+  /* Blog visuals: series colors validated for contrast and color-blind
+     separation against --surface-2 (see MDify-Blog-Generation-Pipeline/visuals). */
+  --bf-s1: #c97a10;
+  --bf-s2: #8a7ee0;
+  --bf-s3: #d9629c;
   color-scheme: dark;
 }
 
@@ -59,6 +64,9 @@
   --lens-border: #2a78d6;
   --wf-border: #1a1a1a;
   --wf-card-bg: #ffffff;
+  --bf-s1: #b45309;
+  --bf-s2: #6d5fd0;
+  --bf-s3: #c2558f;
   color-scheme: light;
 }
 
@@ -173,6 +181,13 @@ body {
 
 .markdown-pre .md-code {
   color: var(--md-code);
+}
+
+/* Blog banners and figures, drawn inline by components/BlogVisual.js */
+.blog-visual svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 /* ── MDify Wireframe & Aurora Glass Utilities ────────────────────────── */

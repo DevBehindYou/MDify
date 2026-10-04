@@ -158,6 +158,22 @@ def test_large_results_are_written_in_parts(client, storage, monkeypatch):
     assert names[0] == "combined-001.md" and "combined-002.md" in names
     assert body["primary_output"].endswith("/combined-001.md")
     assert names[-2:] == ["PROJECT_INDEX.md", "manifest.json"]
+    assert all(len(storage.objects[o["path"]]) <= 400 for o in body["outputs"][:-2])
+
+
+def test_single_large_unicode_entry_is_stored_in_bounded_parts(client, storage, monkeypatch):
+    monkeypatch.setattr(archive, "PART_BYTES", 512)
+    source = "漢字🙂 and code\n" * 300
+    job = upload(storage, {"large.txt": source})
+    res = client.post(PROCESS, json=process_body(job), headers=HEADERS)
+    assert res.status_code == 200, res.text
+    outputs = res.json()["outputs"][:-2]
+    assert len(outputs) > 1
+    assert all(o["bytes"] == len(storage.objects[o["path"]]) <= 512 for o in outputs)
+    parts = [text(storage, o["path"]) for o in outputs]
+    restored = parts[0] + "".join(p.split("\n\n", 1)[1] for p in parts[1:])
+    assert source.strip() in restored
+    assert restored.count("## `large.txt`") == 1
 
 
 # ── refusals ───────────────────────────────────────────────────────────────
