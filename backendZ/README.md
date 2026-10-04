@@ -16,6 +16,15 @@ images to the OCR pool (`backendO`) as separate work items.
 Code files are wrapped in fenced blocks with a language tag. Document
 headings are shifted down so they sit under the file heading.
 
+Each combined Markdown part is at most 4 MiB of UTF-8, including its
+continuation title. Splits prefer file headings, then line endings. A single
+larger file continues across parts at a UTF-8 character boundary; long lines
+and code fences may span parts. For the full document, concatenate the parts
+in number order after removing the added `# … (part N of M)` continuation
+titles and their following blank line. No source text is truncated.
+The converter joins these parts automatically for its preview, copy and
+Markdown export, and reports a download error if a part is missing.
+
 ## Safety rules
 
 - Entry names are normalised. Absolute paths, drive letters, `..` and
