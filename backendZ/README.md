@@ -22,6 +22,8 @@ larger file continues across parts at a UTF-8 character boundary; long lines
 and code fences may span parts. For the full document, concatenate the parts
 in number order after removing the added `# … (part N of M)` continuation
 titles and their following blank line. No source text is truncated.
+The converter joins these parts automatically for its preview, copy and
+Markdown export, and reports a download error if a part is missing.
 
 ## Safety rules
 

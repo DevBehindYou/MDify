@@ -20,6 +20,46 @@ export class ConversionError extends Error {
 
 const UNREACHABLE = 'Could not reach the converter. Check your connection and retry.';
 
+/** Reads every combined archive part before exposing a successful result. */
+export async function fetchResultMarkdown(result, { sourceType, signal, fetchImpl = fetch } = {}) {
+  const read = async (url) => {
+    if (!url) throw new ConversionError('The converted file has no download link. Please try again.', { status: 409 });
+    try {
+      const response = await fetchImpl(url, { signal });
+      if (!response.ok) throw new ConversionError(`Could not download the converted file (${response.status}). Please try again.`, { status: response.status });
+      return await response.text();
+    } catch (err) {
+      if (err?.name === 'AbortError' || err instanceof ConversionError) throw err;
+      throw new ConversionError('Could not download the converted file. Check your connection and retry.', { network: true });
+    }
+  };
+  const stem = (result.filename || '').replace(/\.md$/i, '');
+  const prefix = `${stem}-part-`;
+  const parts = sourceType === 'ARCHIVE' && stem
+    ? (result.outputs || []).flatMap((output) => {
+      if (!output.name?.startsWith(prefix)) return [];
+      const match = /^(\d{3,})\.md$/.exec(output.name.slice(prefix.length));
+      return match ? [{ ...output, number: Number(match[1]) }] : [];
+    }).sort((a, b) => a.number - b.number)
+    : [];
+  if (!parts.length) return read(result.download_url);
+
+  const incomplete = () => new ConversionError('The project result is incomplete. Please retry downloading it.', { status: 409 });
+  if (parts.length < 2 || parts.some((part, index) => part.number !== index + 1)) throw incomplete();
+  const content = [];
+  for (const [index, part] of parts.entries()) {
+    let text = await read(part.url);
+    if (index > 0) {
+      const header = /^# [^\r\n]* \(part (\d+) of (\d+)\)\n\n/.exec(text);
+      // This also detects a server response that omitted trailing output links.
+      if (!header || Number(header[1]) !== index + 1 || Number(header[2]) !== parts.length) throw incomplete();
+      text = text.slice(header[0].length);
+    }
+    content.push(text);
+  }
+  return content.join('');
+}
+
 async function request(url, init, fallbackMessage) {
   let res;
   try {
@@ -81,16 +121,7 @@ async function convertViaStorage(file, profile, signal, onProgress) {
   }
 
   const result = status.result || {};
-  let content = '';
-  if (result.download_url) {
-    try {
-      const md = await fetch(result.download_url, { signal });
-      if (md.ok) content = await md.text();
-    } catch (err) {
-      if (err?.name === 'AbortError') throw err;
-      // The result stays downloadable via /api/jobs/:id/download.
-    }
-  }
+  const content = await fetchResultMarkdown(result, { sourceType: status.source_type, signal });
   return { ...result, job_id: job.job_id, source_type: status.source_type, items: status.items, content };
 }
 
