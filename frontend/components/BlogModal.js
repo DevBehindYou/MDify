@@ -1,16 +1,83 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useModalDialog } from './useModalDialog';
 import AppIcon from './AppIcon';
+import BlogVisual from './BlogVisual';
+import { blogBlocks, inlineTokens } from '../lib/blogRender.mjs';
 
 // Built from content/blog/*.md by scripts/build-blog-index.mjs (the
 // MDify-Blog-Generation-Pipeline writes those files).
 import POSTS from '../lib/blogPosts.generated.json';
 
+function Inline({ text }) {
+  return inlineTokens(text).map((token, i) => {
+    if (token.t === 'bold') return <strong key={i} className="font-bold text-[var(--text)]">{token.v}</strong>;
+    if (token.t === 'code') return <span key={i} className="md-code">{token.v}</span>;
+    if (token.t === 'link') {
+      return (
+        <a
+          key={i}
+          href={token.href}
+          className="md-link underline decoration-dotted underline-offset-2 hover:decoration-solid"
+          {...(token.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+        >
+          {token.v}
+        </a>
+      );
+    }
+    return <React.Fragment key={i}>{token.v}</React.Fragment>;
+  });
+}
+
+/** Article text in the dialog's plain-Markdown style, one block at a time. */
+function ArticleText({ lines }) {
+  return (
+    <div className="markdown-pre font-tech text-[12px] text-[var(--text)] whitespace-pre-wrap leading-relaxed">
+      {lines.map((line, i) => (
+        <React.Fragment key={i}>
+          {line.kind === 'heading' && <span className="md-heading">{line.text}</span>}
+          {line.kind === 'code' && <span className="md-code">{line.text}</span>}
+          {line.kind === 'text' && <Inline text={line.text} />}
+          {i < lines.length - 1 ? '\n' : null}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+/** A diagram or chart inside an article, with its caption and source. */
+function ArticleFigure({ figure, size }) {
+  return (
+    <figure className="-mx-2 sm:mx-0 border border-[var(--border)] rounded-lg bg-[var(--surface)] overflow-hidden">
+      <div className="overflow-x-auto">
+        <div className="min-w-[340px] p-1.5 sm:p-3">
+          <BlogVisual src={figure.src} alt={figure.alt} size={size} />
+        </div>
+      </div>
+      {figure.caption && (
+        <figcaption className="px-3 py-2 border-t border-[var(--border)] font-tech text-[10.5px] text-[var(--muted)] leading-relaxed">
+          <Inline text={figure.caption} />
+        </figcaption>
+      )}
+    </figure>
+  );
+}
+
+function Banner({ post, className = '' }) {
+  if (!post.banner) return null;
+  return <BlogVisual src={post.banner} alt={post.bannerAlt} size={post.visuals?.[post.banner]} className={className} />;
+}
+
 export default function BlogModal({ isOpen, onClose }) {
   const [selectedPost, setSelectedPost] = useState(null);
   const dialogRef = useModalDialog(isOpen, onClose);
+  const scrollRef = useRef(null);
+
+  // Opening a post or going back starts at the top of the pane.
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [selectedPost]);
 
   if (!isOpen) return null;
 
@@ -37,7 +104,7 @@ export default function BlogModal({ isOpen, onClose }) {
         <div className="aurora-hairline w-full" />
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 font-sans text-[13px]">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 font-sans text-[13px]">
           {selectedPost ? (
             /* Article Reader View (1z) */
             <div className="space-y-4">
@@ -48,7 +115,9 @@ export default function BlogModal({ isOpen, onClose }) {
                 ← Back to all posts
               </button>
 
-              <div className="border border-[var(--border)] rounded-lg p-4 bg-[var(--surface-2)] space-y-3">
+              <div className="border border-[var(--border)] rounded-lg p-3 sm:p-4 bg-[var(--surface-2)] space-y-3">
+                <Banner post={selectedPost} className="rounded-md overflow-hidden border border-[var(--border)]" />
+
                 <div className="flex items-center gap-2 font-tech text-[10px] text-[var(--muted)]">
                   <span className="border border-[var(--border-3)] rounded-full px-2 py-0.5">
                     {selectedPost.tag}
@@ -69,9 +138,13 @@ export default function BlogModal({ isOpen, onClose }) {
                   <p className="m-0 text-[var(--text)] leading-relaxed">{selectedPost.tldr}</p>
                 </div>
 
-                <div className="markdown-pre font-tech text-[12px] text-[var(--text)] whitespace-pre-wrap leading-relaxed">
-                  {selectedPost.content}
-                </div>
+                {blogBlocks(selectedPost.content).map((block, i) =>
+                  block.type === 'figure' ? (
+                    <ArticleFigure key={i} figure={block} size={selectedPost.visuals?.[block.src]} />
+                  ) : (
+                    <ArticleText key={i} lines={block.lines} />
+                  )
+                )}
               </div>
             </div>
           ) : (
@@ -91,12 +164,15 @@ export default function BlogModal({ isOpen, onClose }) {
                 onClick={() => setSelectedPost(POSTS[0])}
                 className="border-[1.5px] border-[var(--text)] dark:border-[var(--border-3)] rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-all group"
               >
-                <div className="h-24 bg-gradient-to-r from-[#cfc8ef] via-[#e3c8e2] to-[#eec9d6] flex items-center justify-center p-3 text-center">
-                  <h3 className="font-wireframe text-[18px] text-[#2d2740] font-bold m-0 group-hover:scale-[1.01] transition-transform">
+                {POSTS[0].banner ? (
+                  <Banner post={POSTS[0]} className="border-b border-[var(--border)]" />
+                ) : (
+                  <div className="h-24 bg-gradient-to-r from-[#cfc8ef] via-[#e3c8e2] to-[#eec9d6]" />
+                )}
+                <div className="p-3 bg-[var(--surface-2)] space-y-1.5">
+                  <h3 className="font-wireframe text-[18px] leading-tight font-bold m-0 group-hover:text-[var(--accent-text)] transition-colors">
                     {POSTS[0].title}
                   </h3>
-                </div>
-                <div className="p-3 bg-[var(--surface-2)] space-y-1.5">
                   <div className="flex items-center gap-2 font-tech text-[10px] text-[var(--muted)]">
                     <span className="border border-[var(--border-3)] rounded-full px-2 py-0.5">
                       {POSTS[0].tag}
@@ -118,7 +194,11 @@ export default function BlogModal({ isOpen, onClose }) {
                     onClick={() => setSelectedPost(post)}
                     className="border border-[var(--border)] rounded-lg overflow-hidden cursor-pointer hover:border-[var(--text)] dark:hover:border-white transition-colors bg-[var(--surface-2)] flex flex-col"
                   >
-                    <div className="h-14 bg-wireframe-hatch flex items-center justify-center border-b border-[var(--border)]" />
+                    {post.banner ? (
+                      <Banner post={post} className="border-b border-[var(--border)]" />
+                    ) : (
+                      <div className="h-14 bg-wireframe-hatch flex items-center justify-center border-b border-[var(--border)]" />
+                    )}
                     <div className="p-2.5 flex-1 flex flex-col justify-between space-y-2">
                       <div>
                         <div className="font-tech text-[9px] text-[var(--faint)] mb-1">

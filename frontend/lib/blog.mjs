@@ -9,8 +9,15 @@
 // The frontmatter parser handles the subset the pipeline writes (quoted or
 // bare strings, [flow, arrays], booleans, trailing # comments). It keeps the
 // blog free of a YAML dependency.
+//
+// Visuals: a post may set a `banner` and place figures in its body as
+// `![alt](/blog/{slug}/{name}.svg "caption")` on a line of their own. Both
+// are first-party SVG files in public/blog/{slug}/ that the dialog draws
+// inline, so they follow the app's light and dark theme.
 
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const VISUAL_PATH = /^\/blog\/([a-z0-9]+(?:-[a-z0-9]+)*)\/[a-z0-9]+(?:-[a-z0-9]+)*\.svg$/;
+const FIGURE_LINE = /^!\[([^\]]*)\]\((\S+?)(?:\s+"([^"]*)")?\)\s*$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const WORDS_PER_MINUTE = 230;
 
@@ -128,6 +135,66 @@ export function validatePost(data, { fileSlug } = {}) {
     errors.push('"secondaryKeywords" must be a list of at most 4');
   }
   if (data.draft !== undefined && typeof data.draft !== 'boolean') errors.push('"draft" must be true or false');
+  if (data.featured !== undefined && typeof data.featured !== 'boolean') errors.push('"featured" must be true or false');
+  if (data.banner !== undefined) {
+    const owner = typeof data.banner === 'string' ? VISUAL_PATH.exec(data.banner) : null;
+    if (!owner) errors.push('"banner" must be a path like /blog/{slug}/banner.svg');
+    else if (data.slug && owner[1] !== data.slug) errors.push(`"banner" must live in /blog/${data.slug}/`);
+    if (typeof data.bannerAlt !== 'string' || !data.bannerAlt.trim()) errors.push('"bannerAlt" is required with a banner');
+  }
+  return errors;
+}
+
+/**
+ * Figures placed in a post body: lines of the form ![alt](src "caption"),
+ * outside code fences. Returns [{ alt, src, caption, line }] in order.
+ */
+export function figureRefs(body) {
+  const figures = [];
+  let fence = null;
+  body.split('\n').forEach((line, i) => {
+    const marker = /^\s*(```|~~~)/.exec(line);
+    if (marker) {
+      if (!fence) fence = marker[1];
+      else if (marker[1] === fence) fence = null;
+      return;
+    }
+    if (fence) return;
+    const match = FIGURE_LINE.exec(line.trim());
+    if (match) figures.push({ alt: match[1].trim(), src: match[2], caption: (match[3] || '').trim(), line: i + 1 });
+  });
+  return figures;
+}
+
+/**
+ * Problems that keep an SVG file from being drawn inline in the dialog: it
+ * must be a plain <svg> with a viewBox and nothing that runs or loads code.
+ * Returns { problems, width, height }.
+ */
+export function inspectSvg(text) {
+  const problems = [];
+  const source = String(text).replace(/^﻿/, '').trim();
+  if (!source.startsWith('<svg')) problems.push('must start with <svg');
+  const box = /<svg\b[^>]*\bviewBox="\s*0\s+0\s+(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s*"/.exec(source);
+  if (!box) problems.push('needs viewBox="0 0 W H" on the <svg> element');
+  if (/<script\b/i.test(source)) problems.push('contains <script>');
+  if (/<foreignObject\b/i.test(source)) problems.push('contains <foreignObject>');
+  if (/\son[a-z]+\s*=/i.test(source)) problems.push('contains an on* event attribute');
+  if (/(?:href|src)\s*=\s*["']\s*(?!#)/i.test(source)) problems.push('links to another resource (only #fragment links are allowed)');
+  if (/url\(\s*["']?\s*(?!#)/i.test(source)) problems.push('uses url() with a non-fragment target');
+  if (/<!DOCTYPE|<!ENTITY/i.test(source)) problems.push('contains a DOCTYPE or ENTITY');
+  return { problems, width: box ? Number(box[1]) : null, height: box ? Number(box[2]) : null };
+}
+
+/** Problems with a post's figures: each needs alt text and a path in /blog/{slug}/. */
+export function validateFigures(figures, slug) {
+  const errors = [];
+  for (const fig of figures) {
+    const owner = VISUAL_PATH.exec(fig.src);
+    if (!owner) errors.push(`figure "${fig.src}" must be a path like /blog/${slug}/{name}.svg`);
+    else if (owner[1] !== slug) errors.push(`figure "${fig.src}" must live in /blog/${slug}/`);
+    if (!fig.alt) errors.push(`figure "${fig.src}" needs alt text`);
+  }
   return errors;
 }
 
@@ -178,6 +245,8 @@ export function toDialogPost(fileName, source) {
   const errors = validatePost(data, { fileSlug });
   const { tldr, content } = splitTldr(body);
   if (!tldr) errors.push('the body must start with a "**TL;DR:** ..." line');
+  const figures = figureRefs(content);
+  errors.push(...validateFigures(figures, data.slug || fileSlug));
   if (errors.length) throw new Error(`content/blog/${fileName}: ${errors.join('; ')}`);
   return {
     id: data.slug,
@@ -193,13 +262,18 @@ export function toDialogPost(fileName, source) {
     tags: data.tags,
     tldr,
     content,
+    banner: data.banner || null,
+    bannerAlt: data.banner ? data.bannerAlt : null,
+    figures: figures.map((fig) => fig.src),
+    featured: data.featured === true,
     draft: data.draft === true,
   };
 }
 
-/** Newest first; ties by title so the order is stable. */
+/** Featured posts first, then newest first; ties by title so the order is stable. */
 export function sortPosts(posts) {
-  return [...posts].sort((a, b) =>
-    a.isoDate < b.isoDate ? 1 : a.isoDate > b.isoDate ? -1 : a.title.localeCompare(b.title)
-  );
+  return [...posts].sort((a, b) => {
+    if (Boolean(a.featured) !== Boolean(b.featured)) return a.featured ? -1 : 1;
+    return a.isoDate < b.isoDate ? 1 : a.isoDate > b.isoDate ? -1 : a.title.localeCompare(b.title);
+  });
 }
