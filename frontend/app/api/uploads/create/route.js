@@ -1,3 +1,4 @@
+import { admitPublicRequest, admissionResponse, readBoundedBody } from '../../../../lib/server/publicAdmission';
 import { NextResponse } from 'next/server';
 import { createSupabase, supabaseConfig } from '../../../../lib/server/supabaseRest';
 import { JobError, createUpload } from '../../../../lib/server/jobService';
@@ -14,9 +15,15 @@ export async function POST(request) {
     return NextResponse.json({ detail: 'Direct upload is not configured' }, { status: 501 });
   }
 
+  try { await admitPublicRequest(request, 'upload'); }
+  catch (err) { return admissionResponse(err); }
+
   let input;
   try {
-    input = await request.json();
+    const bounded = await readBoundedBody(request, 8192);
+    if (bounded.error) return bounded.error;
+    input = JSON.parse(new TextDecoder().decode(bounded.bytes));
+    if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Invalid JSON body');
   } catch {
     return NextResponse.json({ detail: 'Expected a JSON body' }, { status: 400 });
   }

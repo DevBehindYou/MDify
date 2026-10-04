@@ -18,7 +18,10 @@ with fns(sig) as (
     ('public.begin_job_cleanup(uuid,uuid)'),
     ('public.finish_job_cleanup(uuid,uuid)'),
     ('public.fail_job_cleanup(uuid,uuid)'),
-    ('public.settle_cancelled_jobs()')
+    ('public.settle_cancelled_jobs()'),
+    ('public.admit_public_request(text,text)'),
+    ('public.release_public_multipart(uuid)'),
+    ('public.prune_public_admission()')
 ),
 roles(role, should_execute) as (
   values ('anon', false), ('authenticated', false), ('service_role', true)
@@ -33,7 +36,7 @@ union all
 select 'table', t.tbl, r.role,
        has_table_privilege(r.role, t.tbl, 'select'),
        has_table_privilege(r.role, t.tbl, 'select') = (r.role = 'service_role')
-  from (values ('public.jobs'), ('public.file_objects'), ('public.job_events'), ('public.audit_logs')) t(tbl)
+  from (values ('public.jobs'), ('public.file_objects'), ('public.job_events'), ('public.audit_logs'), ('public.public_request_budgets'), ('public.public_multipart_leases')) t(tbl)
  cross join (values ('anon'), ('authenticated'), ('service_role')) r(role)
 
 union all
@@ -45,7 +48,7 @@ select 'security_definer', p.proname, '-', p.prosecdef, not p.prosecdef
  where n.nspname = 'public'
    and p.proname in ('confirm_upload','sweep_stale_jobs','claim_cleanup_batch','request_delete_now','get_admin_kpis','mdify_set_updated_at',
      'start_uploaded_job','finalize_job_outputs','finish_work_item','cleanup_is_due','claim_job_cleanup',
-     'begin_job_cleanup','finish_job_cleanup','fail_job_cleanup','settle_cancelled_jobs')
+     'begin_job_cleanup','finish_job_cleanup','fail_job_cleanup','settle_cancelled_jobs','admit_public_request','release_public_multipart','prune_public_admission')
 
 union all
 

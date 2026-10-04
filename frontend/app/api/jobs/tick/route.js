@@ -26,6 +26,7 @@ export async function POST(request) {
 
   const db = createSupabase(config);
   try {
+    await db.rpc('prune_public_admission', {});
     const stale = await db.rpc('sweep_stale_jobs', {});
     const { claimed, results } = await runTick(db, { secret });
     return NextResponse.json({

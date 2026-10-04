@@ -1,3 +1,4 @@
+import { admitPublicRequest, admissionResponse } from '../../../../../lib/server/publicAdmission';
 import { NextResponse } from 'next/server';
 import { createSupabase, supabaseConfig } from '../../../../../lib/server/supabaseRest';
 import { JobError, startJob } from '../../../../../lib/server/jobService';
@@ -11,7 +12,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 // pass, so a small file is usually finished when this returns. Otherwise the
 // browser keeps calling /advance. Responses carry statistics and short-lived
 // download links, never the Markdown itself.
-export async function POST(_request, { params }) {
+export async function POST(request, { params }) {
   const config = supabaseConfig();
   const secret = process.env.BACKEND_SHARED_SECRET;
   if (!config || !secret) {
@@ -22,9 +23,12 @@ export async function POST(_request, { params }) {
   }
 
   try {
+    await admitPublicRequest(request, 'start');
     const { status, body } = await startJob(createSupabase(config), params.id, { secret });
     return NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
   } catch (err) {
+    const denied = admissionResponse(err);
+    if (denied) return denied;
     if (err instanceof JobError) return NextResponse.json({ detail: err.message }, { status: err.status });
     console.error('[jobs/start]', err.message);
     return NextResponse.json({ detail: 'Conversion could not be started. Please retry.' }, { status: 502 });
