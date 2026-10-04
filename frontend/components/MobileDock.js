@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function MobileDock({
@@ -28,9 +29,7 @@ export default function MobileDock({
   const activeIndex = getIndex();
 
   const handleItemClick = (type, index) => {
-    if (type === 'convert') {
-      if (onSelectTab) onSelectTab('convert');
-    } else if (type === 'why') {
+    if (type === 'why') {
       router.push('/usecase');
     } else if (type === 'blog') {
       if (onOpenBlog) onOpenBlog();
@@ -56,15 +55,17 @@ export default function MobileDock({
         />
 
         {/* Item 1: Convert */}
-        <button
-          onClick={() => handleItemClick('convert', 0)}
-          className={`relative z-10 flex flex-col items-center justify-center gap-0.5 bg-transparent border-0 cursor-pointer p-0 h-full ${
+        <Link
+          href="/"
+          aria-current={activeTab === 'convert' ? 'page' : undefined}
+          onClick={() => onSelectTab && onSelectTab('convert')}
+          className={`relative z-10 flex flex-col items-center justify-center gap-0.5 bg-transparent border-0 no-underline cursor-pointer p-0 h-full ${
             activeIndex === 0 ? 'text-[var(--text)] font-semibold' : 'text-[var(--muted)]'
           }`}
         >
           <span className="text-[19px] leading-none">▣</span>
           <span className="text-[9.5px] font-sans">Convert</span>
-        </button>
+        </Link>
 
         {/* Item 2: Why */}
         <button

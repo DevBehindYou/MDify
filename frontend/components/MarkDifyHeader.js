@@ -32,9 +32,11 @@ export default function MarkDifyHeader({
 
           {/* Nav Links */}
           <nav className="flex items-center gap-4 ml-3 text-[14px] font-sans whitespace-nowrap">
-            <button
+            <Link
+              href="/"
+              aria-current={activeTab === 'converter' ? 'page' : undefined}
               onClick={() => onTabChange && onTabChange('converter')}
-              className={`relative pb-1 transition-colors cursor-pointer bg-transparent border-0 font-medium ${
+              className={`relative pb-1 transition-colors cursor-pointer bg-transparent border-0 no-underline font-medium ${
                 activeTab === 'converter' ? 'text-[var(--text)]' : 'text-[var(--muted)] hover:text-[var(--text)]'
               }`}
             >
@@ -42,7 +44,7 @@ export default function MarkDifyHeader({
               {activeTab === 'converter' && (
                 <div className="absolute left-0 right-0 bottom-0 h-[2.5px] rounded-full bg-gradient-to-r from-[#8f83d8] to-[#d98fb0]" />
               )}
-            </button>
+            </Link>
 
             <Link
               href="/usecase"
