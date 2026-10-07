@@ -83,7 +83,18 @@ then `mark_job_files_deleted` clears file names and archive paths from the datab
 
 ## Storage budget
 
-Before a new upload, `storage_usage_bytes` plus the job's expected footprint (×2 documents and images,
-×3 PDFs and ZIPs) must stay under `STORAGE_BUDGET_BYTES` (default 800 MiB of Supabase Free's 1 GB),
-otherwise the upload is refused with "MDify is handling a lot of files right now". The check fails
-open if the usage query itself fails.
+Upload admission now checks fresh Storage bytes plus unspent per-job reservations inside
+one database transaction, before signing an upload URL. Concurrent deployments share
+an 800 MiB ceiling; `STORAGE_BUDGET_BYTES` can lower it. Unavailable or malformed usage
+returns 503 with Retry-After instead of failing open.
+
+Each active job reserves the larger of the bucket's single-object ceiling (15 MiB by
+default) and its conversion estimate (2× documents/images, 3× PDFs/ZIPs). Actual job
+objects replace that estimate, and retained results and orphan objects still count.
+Signed-upload headroom remains for three hours even after cancellation or deletion;
+active processing reservations remain until the job settles. This conservative guard
+can temporarily refuse small uploads while older tokens remain valid.
+
+The conversion multipliers are estimates, not per-write limits. Expanded PDFs/archives,
+late worker writes, other buckets, and physical orphan deletion remain separate work.
+See [the reservation rollout](RELEASE_STORAGE_RESERVATIONS.md).

@@ -92,3 +92,20 @@ assert.equal(legacyCapacity.filter(r=>r.status==='fulfilled').length,1);
 assert.ok(legacyCapacity.filter(r=>r.status==='rejected').every(r=>/handling many jobs/.test(r.reason.stderr)));
 assert.equal(await sql(`select count(*) from public.jobs where status in ('UPLOADING','QUEUED','PROCESSING','CANCEL_REQUESTED')`),'32');
 console.log('PostgreSQL: competing atomic upload admissions and legacy inserts respect active-job capacity');
+
+// Independent sessions contend for one remaining storage reservation. A tiny
+// declared upload still holds the 15 MiB bucket ceiling while its token lives.
+await sql("update public.jobs set status='COMPLETED' where status in ('UPLOADING','QUEUED','PROCESSING','CANCEL_REQUESTED')");
+await sql("update public.job_storage_reservations set upload_guard_until=now()-interval '1 second'");
+await sql("insert into storage.objects(bucket_id,name,metadata) values('mdify-pro-files','storage-race-existing','{\"size\":823132160}')");
+const storageRace=await Promise.all(Array.from({length:12},()=>sql(`select public.create_reserved_upload_job('mdify-pro-files','race.txt','txt',12,null,'standard','DOCUMENT','NORMAL',838860800)`)));
+const storageResults=storageRace.map(JSON.parse);
+assert.equal(storageResults.filter(r=>r.allowed).length,1);
+assert.ok(storageResults.filter(r=>!r.allowed).every(r=>r.reason==='storage_capacity'));
+assert.equal(await sql('select count(*) from public.job_storage_reservations'),'1');
+const storageJob=storageResults.find(r=>r.allowed).job_id;
+await sql(`update public.jobs set status='CANCELLED',files_deleted_at=now() where job_id='${storageJob}'`);
+assert.equal(JSON.parse(await sql(`select public.create_reserved_upload_job('mdify-pro-files','race.txt','txt',12,null,'standard','DOCUMENT','NORMAL',838860800)`)).allowed,false);
+await sql(`update public.job_storage_reservations set upload_guard_until=now()-interval '1 second' where job_id='${storageJob}'`);
+assert.equal(JSON.parse(await sql(`select public.create_upload_job('mdify-pro-files','rollback.txt','txt',12,null,'standard','DOCUMENT','NORMAL')`)).allowed,true);
+console.log('PostgreSQL: competing storage reservations, cancelled-token guards and rollback RPC passed');

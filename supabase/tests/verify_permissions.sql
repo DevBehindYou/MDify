@@ -23,7 +23,9 @@ with fns(sig) as (
     ('public.release_public_multipart(uuid)'),
     ('public.prune_public_admission()'),
     ('public.guard_active_job_capacity()'),
-    ('public.create_upload_job(text,text,text,bigint,text,text,text,text)')
+    ('public.create_upload_job(text,text,text,bigint,text,text,text,text)'),
+    ('public.create_reserved_upload_job(text,text,text,bigint,text,text,text,text,bigint)'),
+    ('public.storage_capacity_snapshot(text)')
 ),
 roles(role, should_execute) as (
   values ('anon', false), ('authenticated', false), ('service_role', true)
@@ -38,7 +40,7 @@ union all
 select 'table', t.tbl, r.role,
        has_table_privilege(r.role, t.tbl, 'select'),
        has_table_privilege(r.role, t.tbl, 'select') = (r.role = 'service_role')
-  from (values ('public.jobs'), ('public.file_objects'), ('public.job_events'), ('public.audit_logs'), ('public.public_request_budgets'), ('public.public_multipart_leases')) t(tbl)
+  from (values ('public.jobs'), ('public.file_objects'), ('public.job_events'), ('public.audit_logs'), ('public.public_request_budgets'), ('public.public_multipart_leases'), ('public.job_storage_reservations')) t(tbl)
  cross join (values ('anon'), ('authenticated'), ('service_role')) r(role)
 
 union all
@@ -50,7 +52,7 @@ select 'security_definer', p.proname, '-', p.prosecdef, not p.prosecdef
  where n.nspname = 'public'
    and p.proname in ('confirm_upload','sweep_stale_jobs','claim_cleanup_batch','request_delete_now','get_admin_kpis','mdify_set_updated_at',
      'start_uploaded_job','finalize_job_outputs','finish_work_item','cleanup_is_due','claim_job_cleanup',
-     'begin_job_cleanup','finish_job_cleanup','fail_job_cleanup','settle_cancelled_jobs','admit_public_request','release_public_multipart','prune_public_admission','guard_active_job_capacity','create_upload_job')
+     'begin_job_cleanup','finish_job_cleanup','fail_job_cleanup','settle_cancelled_jobs','admit_public_request','release_public_multipart','prune_public_admission','guard_active_job_capacity','create_upload_job','create_reserved_upload_job','storage_capacity_snapshot')
 
 union all
 

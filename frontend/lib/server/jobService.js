@@ -1,6 +1,6 @@
 // Server-only job lifecycle on Supabase Storage + Postgres.
 //
-//   createUpload → storage estimate + atomic active-job admission → UPLOADING + file_objects
+//   createUpload → atomic storage + active-job admission → UPLOADING + file_objects
 //                  INPUT PENDING + signed upload URL (bytes go straight to Storage)
 //   startJob     → confirm_upload() (48 h deadline) → enqueue_root() → first
 //                  scheduling pass inline, so small files finish in this call
@@ -21,11 +21,6 @@ export const DOWNLOAD_URL_TTL_S = 600;
 const PROFILE_DB = { Standard: 'standard', Clean: 'clean', Compact: 'compact', 'RAG-ready': 'rag_ready' };
 const WORKLOAD_DB = { normal: 'NORMAL', ocr: 'OCR', archive: 'ARCHIVE' };
 const TERMINAL = new Set(['COMPLETED', 'FAILED', 'CANCELLED', 'DELETED']);
-
-// Storage a job can occupy, as a multiple of its upload: the input plus
-// results, and for PDFs and archives also rendered pages / extracted images.
-const FOOTPRINT = { DOCUMENT: 2, IMAGE: 2, PDF: 3, ARCHIVE: 3 };
-const USAGE_CACHE_MS = 15_000;
 
 export class JobError extends Error {
   constructor(message, status, { retryAfter = null } = {}) {
@@ -49,41 +44,10 @@ export function sourceTypeFor(ext) {
 
 // ── Storage budget ──────────────────────────────────────────────────────────
 
-let usageCache = null; // { at, bytes }
-
 export function storageBudgetBytes(env = process.env) {
-  const n = Number.parseInt(env.STORAGE_BUDGET_BYTES ?? '', 10);
-  return Number.isFinite(n) && n > 0 ? n : 800 * 1024 * 1024; // of Supabase Free's 1 GB
-}
-
-/**
- * Refuses a new job when the bucket plus this job's expected footprint would
- * pass the budget. Fails open if the usage query itself fails: a missing
- * number must not take the whole service down.
- */
-export async function checkStorageBudget(db, { size, sourceType, env = process.env, now = Date.now() }) {
-  let used;
-  if (usageCache && now - usageCache.at < USAGE_CACHE_MS) {
-    used = usageCache.bytes;
-  } else {
-    try {
-      used = Number(await db.rpc('storage_usage_bytes', { p_bucket: db.bucket })) || 0;
-      usageCache = { at: now, bytes: used };
-    } catch (err) {
-      console.error('[storage budget] usage query failed:', err.message);
-      return { used: null, allowed: true };
-    }
-  }
-  const needed = size * (FOOTPRINT[sourceType] || 2);
-  if (used + needed > storageBudgetBytes(env)) {
-    throw new JobError('MDify is handling a lot of files right now. Please try again in a few minutes.', 503);
-  }
-  return { used, allowed: true };
-}
-
-/** Test hook. */
-export function resetStorageUsageCacheForTests() {
-  usageCache = null;
+  const n = Number(env.STORAGE_BUDGET_BYTES);
+  const ceiling = 800 * 1024 * 1024;
+  return Number.isSafeInteger(n) && n > 0 ? Math.min(n, ceiling) : ceiling;
 }
 
 // ── Lifecycle ───────────────────────────────────────────────────────────────
@@ -98,21 +62,24 @@ export async function createUpload(db, { filename, size, contentType, profile, e
     throw new JobError(`.${ext} conversion isn't available right now`, 503);
   }
   const sourceType = sourceTypeFor(ext);
-  await checkStorageBudget(db, { size, sourceType, env });
 
   let job;
   try {
-    job = await db.rpc('create_upload_job', {
+    job = await db.rpc('create_reserved_upload_job', {
       p_bucket: db.bucket, p_filename: base, p_extension: ext, p_size: size,
       p_mime: contentType || null, p_profile: PROFILE_DB[profile] || 'standard',
       p_source_type: sourceType, p_workload_type: WORKLOAD_DB[pool],
+      p_budget_bytes: storageBudgetBytes(env),
     });
   } catch {
     // Missing migration or unavailable capacity must never fall back to inserts.
     throw new JobError('Uploads are temporarily unavailable. Please retry shortly.', 503, { retryAfter: 30 });
   }
   if (job?.allowed === false) {
-    throw new JobError('MDify is handling many jobs. Please try again shortly.', 503, { retryAfter: 30 });
+    const message = job.reason === 'storage_capacity'
+      ? 'MDify is handling a lot of files right now. Please try again in a few minutes.'
+      : 'MDify is handling many jobs. Please try again shortly.';
+    throw new JobError(message, 503, { retryAfter: 30 });
   }
   if (job?.allowed !== true || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(job.job_id || '')) {
     throw new JobError('Uploads are temporarily unavailable. Please retry shortly.', 503, { retryAfter: 30 });

@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { freshDb, MIGRATIONS_DIR } from './sql/pgliteDb.mjs';
 import { createPgliteSupabase } from './sql/pgliteSupabase.mjs';
-import { createUpload, JobError, resetStorageUsageCacheForTests } from '../lib/server/jobService.js';
+import { createUpload, JobError } from '../lib/server/jobService.js';
 const ENV={NORMAL_BACKEND_URLS:'http://n1',OCR_BACKEND_URLS:'http://o1',ARCHIVE_BACKEND_URLS:'http://z1'};
 const args={filename:'fixture.txt',size:12,profile:'Standard',env:ENV};
 const active="status in ('UPLOADING','QUEUED','PROCESSING','CANCEL_REQUESTED')";
 const count=async(pg,table,where='true')=>(await pg.query(`select count(*)::int as n from public.${table} where ${where}`)).rows[0].n;
 const fill=async(pg,n)=>pg.exec(`insert into public.jobs(status) select 'UPLOADING' from generate_series(1,${n})`);
-async function setup(){resetStorageUsageCacheForTests();const pg=await freshDb();return {pg,db:createPgliteSupabase(pg)};}
+async function setup(){const pg=await freshDb();return {pg,db:createPgliteSupabase(pg)};}
 
 test('capacity includes uploads, queued/running jobs and pending cancellation; terminal settlement frees one slot',async()=>{
  const {pg,db}=await setup();try{
@@ -77,12 +77,11 @@ test('migration preserves an existing over-cap queue and permits it to finish',a
 
 test('missing or malformed admission never falls back to inserts or issues a signed URL',async()=>{
  for(const response of [null,{},[],{allowed:true,job_id:'invalid'}]){
-  resetStorageUsageCacheForTests();
-  const db={bucket:'test',rpc:async(name)=>name==='storage_usage_bytes'?0:response,insert:async()=>assert.fail('fallback insert'),signedUploadUrl:async()=>assert.fail('unauthorized signing')};
+  const db={bucket:'test',rpc:async()=>response,insert:async()=>assert.fail('fallback insert'),signedUploadUrl:async()=>assert.fail('unauthorized signing')};
   await assert.rejects(createUpload(db,args),e=>e.status===503&&e.retryAfter===30);
  }
- resetStorageUsageCacheForTests();
- const db={bucket:'test',rpc:async(name)=>{if(name==='storage_usage_bytes')return 0;throw Error('private database detail');},signedUploadUrl:async()=>assert.fail()};
+
+ const db={bucket:'test',rpc:async()=>{throw Error('private database detail');},signedUploadUrl:async()=>assert.fail()};
  await assert.rejects(createUpload(db,args),e=>e.status===503&&!e.message.includes('private'));
 });
 

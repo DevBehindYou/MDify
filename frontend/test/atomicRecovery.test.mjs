@@ -2,13 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb } from './sql/pgliteDb.mjs';
 import { createPgliteSupabase } from './sql/pgliteSupabase.mjs';
-import { createUpload, startJob, jobStatus, resetStorageUsageCacheForTests } from '../lib/server/jobService.js';
+import { createUpload, startJob, jobStatus } from '../lib/server/jobService.js';
 import { sendToPool } from '../lib/server/dispatcher.js';
 
 const env = { NORMAL_BACKEND_URLS: 'http://backend.test' };
 async function fixture(t) {
   const pg = await freshDb(); t.after(() => pg.close());
-  const db = createPgliteSupabase(pg); resetStorageUsageCacheForTests();
+  const db = createPgliteSupabase(pg);
   const upload = await createUpload(db, { filename: 'fixture.txt', size: 12, env });
   db.objects.set(upload.object_path, { metadata: { size: 12 } });
   return { pg, db, id: upload.job_id, path: upload.object_path };

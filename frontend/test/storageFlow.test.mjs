@@ -12,7 +12,6 @@ import {
   downloadUrl,
   inputPath,
   JobError,
-  resetStorageUsageCacheForTests,
   startJob,
 } from '../lib/server/jobService.js';
 import { convertFile, resetTransportForTests, waitForJob } from '../lib/models/conversionService.js';
@@ -24,7 +23,6 @@ const ENV = {
 };
 
 async function setup() {
-  resetStorageUsageCacheForTests();
   const pg = await freshDb();
   return { pg, db: createPgliteSupabase(pg) };
 }
