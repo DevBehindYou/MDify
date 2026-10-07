@@ -5,7 +5,7 @@
 import { MAX_FILE_SIZE, MAX_IMAGE_FILE_SIZE, MAX_QUEUE_FILES } from './formats.js';
 import { OPERATOR, RETENTION_HOURS } from './legal/policies.js';
 
-export const SITE_URL = 'https://mdify-app.vercel.app';
+export const SITE_URL = 'https://mdify.devbehindyou.com';
 export const SITE_NAME = 'MDify';
 export const CONTENT_UPDATED = '2026-09-28';
 export const CONTENT_UPDATED_LABEL = '28 September 2026';
@@ -178,7 +178,7 @@ export function siteJsonLd() {
         '@type': 'Organization',
         '@id': ORG_ID,
         name: OPERATOR.name,
-        url: 'https://github.com/DevBehindYou',
+        url: 'https://devbehindyou.com',
         email: OPERATOR.email,
         logo: `${SITE_URL}/mdify-icon.png`,
         sameAs: ['https://github.com/DevBehindYou'],

@@ -19,7 +19,7 @@ export const OUTPUT_FILE = path.join(FRONTEND, 'lib', 'blogPosts.generated.json'
 export const PUBLIC_DIR = path.join(FRONTEND, 'public');
 
 // Only what the dialog renders; keeps its lazily loaded chunk small.
-const DIALOG_FIELDS = ['id', 'title', 'tag', 'date', 'readTime', 'summary', 'author', 'tldr', 'content', 'banner', 'bannerAlt', 'visuals'];
+const DIALOG_FIELDS = ['id', 'title', 'tag', 'date', 'publishedAt', 'description', 'readTime', 'summary', 'author', 'tldr', 'content', 'banner', 'bannerAlt', 'visuals'];
 
 function isPostFile(name) {
   return name.endsWith('.md') && !name.startsWith('_') && name.toLowerCase() !== 'readme.md';

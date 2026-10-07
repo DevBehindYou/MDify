@@ -2,14 +2,14 @@
 
 > MDify is a free online converter that turns PDF, Word, PowerPoint, Excel, EPUB, HTML, CSV, JSON, images and ZIP files into clean Markdown. No account is needed. Uploads and results are deleted automatically within 48 hours. Converting a typical 500-word PDF page to Markdown cuts the tokens an AI chat app spends on it by about 70%, so free AI plans last longer.
 
-Made by DevBehindYou (devbehindyou@gmail.com). Open source under the GNU General Public License v3.0. Last updated: 28 September 2026.
+Made by DevBehindYou (devbehindyou@gmail.com). Open source under the GNU General Public License v3.0. Last updated: 7 October 2026.
 
 ## Pages
 
-- [MDify converter](https://mdify-app.vercel.app/): drop up to 20 files, pick an output profile (Standard, Clean, Compact, RAG-ready), then copy the Markdown, download .md files or export a .zip.
-- [Why Markdown for AI](https://mdify-app.vercel.app/usecase): how Markdown cuts PDF token costs by 70%, the supported formats and limits, and answers to common questions.
-- [Privacy Policy](https://mdify-app.vercel.app/privacy): what MDify processes, the 48-hour deletion, and your rights under the GDPR.
-- [Terms of Service](https://mdify-app.vercel.app/terms): rules for using the free service.
+- [MDify converter](https://mdify.devbehindyou.com/): drop up to 20 files, pick an output profile (Standard, Clean, Compact, RAG-ready), then copy the Markdown, download .md files or export a .zip.
+- [Why Markdown for AI](https://mdify.devbehindyou.com/usecase): how Markdown cuts PDF token costs by 70%, the supported formats and limits, and answers to common questions.
+- [Privacy Policy](https://mdify.devbehindyou.com/privacy): what MDify processes, the 48-hour deletion, and your rights under the GDPR.
+- [Terms of Service](https://mdify.devbehindyou.com/terms): rules for using the free service.
 
 ## Key facts
 
@@ -19,3 +19,14 @@ Made by DevBehindYou (devbehindyou@gmail.com). Open source under the GNU General
 - ZIP files: up to 15 MB and 2,000 files, converted into one Markdown file plus a project index and a manifest. Build folders are skipped and files that look like credentials are never read.
 - Batch: up to 20 files at once.
 - Token math for a 500-word page: about 667 tokens as Markdown, about 2,235 as a PDF on a standard-resolution model (text plus a page image), 70% less. Sources: OpenAI Help Center (100 tokens ≈ 75 words) and Claude's PDF and vision documentation.
+
+## Blog guides
+
+- [Markdown vs Raw PDFs: Which Uses Fewer LLM Tokens?](https://mdify.devbehindyou.com/blog/markdown-vs-pdf-llm-tokens): Markdown vs PDF for LLM input: a 500-word page costs about 667 tokens as Markdown and 2,235 as a PDF page. See where the gap comes from and when it matters.
+- [How to Cut LLM API Costs by 50% Without Losing Quality](https://mdify.devbehindyou.com/blog/reduce-llm-api-costs): Reduce LLM API costs without hurting quality: batch async work, cache repeated prompts, shrink documents, route easy requests and cap output. With real prices.
+- [PDFs Are Expensive for AI: Here's Why](https://mdify.devbehindyou.com/blog/why-pdfs-are-expensive-for-ai): PDF LLM tokens add up fast: page images, repeated headers, broken columns and flattened tables. See why PDFs cost AI more, and the fix that works.
+- [Stop Sending Whole Documents to AI: Build a Better Pipeline](https://mdify.devbehindyou.com/blog/document-to-llm-pipeline): Build a document to LLM pipeline that extracts, cleans, chunks and retrieves, so each question sends a few relevant sections instead of the whole file.
+- [The Hidden Token Tax in RAG Pipelines](https://mdify.devbehindyou.com/blog/hidden-token-tax-rag-pipelines): RAG token optimization starts before generation: oversized chunks, overlap, duplicate retrieval and loose top-K inflate context. Learn to cut the tax.
+- [The Real Cost of RAG: Embeddings, Tokens and Re-Ranking](https://mdify.devbehindyou.com/blog/rag-cost-optimization): The real RAG cost is rarely embeddings. See where retrieval pipelines spend, from parsing to generation, and how to cut cost without hurting relevance.
+- [Why Your LLM Token Usage Is So High, and How to Fix It](https://mdify.devbehindyou.com/blog/reduce-llm-token-usage): High LLM token usage rarely comes from your questions. Find the hidden causes: raw PDFs, chat history, big prompts, duplicate text and whole documents.
+- [Your LLM Bill Is Probably 2x Higher Than It Needs to Be](https://mdify.devbehindyou.com/blog/why-your-llm-bill-is-too-high): Your LLM API cost is likely inflated by repeated prompts, endless history, raw PDFs, off-topic retrieval, wordy output and an overkill model. Find the leaks.

@@ -253,6 +253,7 @@ export function toDialogPost(fileName, source) {
     title: data.title,
     tag: data.category,
     date: dateLabel(data.date),
+    publishedAt: data.date,
     isoDate: data.date,
     updated: data.updated || null,
     readTime: `${readingMinutes(body)} min`,

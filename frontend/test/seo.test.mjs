@@ -66,7 +66,7 @@ test('crawlers may read public pages, never the admin or the API', () => {
   for (const bot of ['GPTBot', 'OAI-SearchBot', 'PerplexityBot', 'ClaudeBot', 'Google-Extended']) assert.ok(agents.includes(bot), bot);
   assert.ok(map.endsWith('/sitemap.xml'));
   const urls = sitemap().map((e) => e.url);
-  assert.ok(urls.every((u) => u.startsWith('https://mdify-app.vercel.app')));
+  assert.ok(urls.every((u) => u.startsWith('https://mdify.devbehindyou.com')));
   assert.ok(!urls.some((u) => u.includes('mdify-controller')));
 });
 
