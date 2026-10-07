@@ -1,0 +1,1 @@
+b="$VERCEL_GIT_PREVIOUS_SHA"; [ -n "$b" ] || { [ "$VERCEL_ENV" = preview ] && git fetch --depth=1 origin main >/dev/null 2>&1 || exit 1; b=FETCH_HEAD; }; git diff --quiet "$b" HEAD -- . && exit 0; exit 1

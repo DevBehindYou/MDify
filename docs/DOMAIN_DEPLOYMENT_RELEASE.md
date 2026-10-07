@@ -22,10 +22,10 @@ All four worker projects had Ignored Build Step = Automatic, 30-day retention in
 Their Project Settings now have Ignored Build Step = Custom:
 
 ```sh
-git diff --quiet "$VERCEL_GIT_PREVIOUS_SHA" "$VERCEL_GIT_COMMIT_SHA" -- .
+b="$VERCEL_GIT_PREVIOUS_SHA"; [ -n "$b" ] || { [ "$VERCEL_ENV" = preview ] && git fetch --depth=1 origin main >/dev/null 2>&1 || exit 1; b=FETCH_HEAD; }; git diff --quiet "$b" HEAD -- . && exit 0; exit 1
 ```
 
-Vercel executes this in the configured root. Exit 0 skips an unchanged folder; changed code/config/dependencies or missing Git history produces nonzero and builds. Compare against the previously deployed SHA, not only HEAD's parent, so a multi-commit push cannot hide an earlier worker change. Git-history regression tests check folder scoping. The frontend ships a corresponding Node ignore command, validating SHAs and building on uncertain history.
+Vercel executes this in the configured root. Exit 0 skips an unchanged folder; exit 1 explicitly permits a build. The previous successful project/branch deployment is the baseline. On a first preview, where Vercel leaves the previous SHA empty, fetch main as the baseline. A missing production baseline, failed fetch or invalid Git revision permits the build. This normalizes Git errors to exit 1; the initial unguarded command failed with exit 128 on the first preview and was replaced before merge. Whole-tree comparisons cover changes across multiple commits. Regression tests execute the exact saved shell command. The frontend ships a corresponding Node ignore command, validating SHAs and building on uncertain history.
 
 The worker command is a dashboard setting deliberately applied before this frontend-only PR. Adding new worker runtime/config files just to install a script would itself build Python packages. Future worker changes remain eligible for production and preview builds. Skipped builds may still consume deployment-count/build-slot limits, but do not produce new function packages. Confirm the live skipped outcome on this release before declaring the change verified.
 
