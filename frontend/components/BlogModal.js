@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useModalDialog } from './useModalDialog';
+import Link from 'next/link';
 import AppIcon from './AppIcon';
 import BlogVisual from './BlogVisual';
 import { blogBlocks, inlineTokens } from '../lib/blogRender.mjs';
@@ -114,6 +115,7 @@ export default function BlogModal({ isOpen, onClose }) {
               >
                 ← Back to all posts
               </button>
+              <Link href={`/blog/${selectedPost.id}`} className="md-link text-[12px]">Open article page ↗</Link>
 
               <div className="border border-[var(--border)] rounded-lg p-3 sm:p-4 bg-[var(--surface-2)] space-y-3">
                 <Banner post={selectedPost} className="rounded-md overflow-hidden border border-[var(--border)]" />
@@ -153,6 +155,7 @@ export default function BlogModal({ isOpen, onClose }) {
               <div className="font-tech text-[10px] tracking-wider text-[var(--faint)] uppercase">
                 THE MDIFY BLOG · GUIDES & BENCHMARKS
               </div>
+              <Link href="/blog" className="md-link underline">Browse all article pages ↗</Link>
 
               {POSTS.length === 0 && (
                 <p className="text-[12.5px] text-[var(--muted)] m-0">No posts yet. Check back soon.</p>

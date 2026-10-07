@@ -77,7 +77,7 @@ function ogCardSvg() {
 
   <!-- Footer -->
   <rect x="72" y="532" width="1056" height="1.5" fill="${C.hairline}"/>
-  <text x="72" y="578" font-family="${MONO}" font-size="21" fill="${C.muted}">mdify-app.vercel.app</text>
+  <text x="72" y="578" font-family="${MONO}" font-size="21" fill="${C.muted}">mdify.devbehindyou.com</text>
   <text x="1128" y="578" text-anchor="end" font-family="${SANS}" font-size="21" fill="${C.faint}">Files deleted within 48 hours · by DevBehindYou</text>
 </svg>`;
 }

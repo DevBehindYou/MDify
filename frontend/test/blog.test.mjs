@@ -90,7 +90,7 @@ test('index: drafts are left out and posts are newest first', () => {
     fs.writeFileSync(path.join(dir, 'README.md'), 'not a post');
     const posts = buildIndex(dir);
     assert.deepEqual(posts.map((p) => p.id), ['word-to-markdown', 'older-post']);
-    assert.deepEqual(Object.keys(posts[0]), ['id', 'title', 'tag', 'date', 'readTime', 'summary', 'author', 'tldr', 'content', 'banner', 'bannerAlt', 'visuals']);
+    assert.deepEqual(Object.keys(posts[0]), ['id', 'title', 'tag', 'date', 'publishedAt', 'description', 'readTime', 'summary', 'author', 'tldr', 'content', 'banner', 'bannerAlt', 'visuals']);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

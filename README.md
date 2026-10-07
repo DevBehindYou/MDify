@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://mdify-app.vercel.app">
+  <a href="https://mdify.devbehindyou.com">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="frontend/public/mdify-icon-dark.svg">
       <img src="frontend/public/mdify-icon-light.svg" width="112" height="112" alt="MDify app icon: three text lines next to a ]# mark">
@@ -15,13 +15,13 @@
 </p>
 
 <p align="center">
-  <a href="https://mdify-app.vercel.app"><strong>Open MDify</strong></a>
+  <a href="https://mdify.devbehindyou.com"><strong>Open MDify</strong></a>
   &nbsp;·&nbsp;
-  <a href="https://mdify-app.vercel.app/usecase">Why Markdown</a>
+  <a href="https://mdify.devbehindyou.com/usecase">Why Markdown</a>
   &nbsp;·&nbsp;
   <a href="#faq">FAQ</a>
   &nbsp;·&nbsp;
-  <a href="https://mdify-app.vercel.app/privacy">Privacy</a>
+  <a href="https://mdify.devbehindyou.com/privacy">Privacy</a>
 </p>
 
 <p align="center">
@@ -73,7 +73,7 @@ ZIP files get special care. Dependency and build folders such as `node_modules` 
 
 ## How to convert a PDF to Markdown
 
-1. Open [mdify-app.vercel.app](https://mdify-app.vercel.app).
+1. Open [mdify.devbehindyou.com](https://mdify.devbehindyou.com).
 2. Drop your files on the page, or click to choose them. Up to 20 files per batch.
 3. Pick an output profile (see below) and press **Convert all**.
 4. Copy the Markdown, download one `.md` file, or export the whole batch as a `.zip`.
@@ -111,13 +111,13 @@ The first conversion of the day can take up to a minute while the converter star
 - No account and no sign-up.
 - Uploads and results are deleted automatically within 48 hours.
 - Nobody trains AI models on your files. No ads and no tracking cookies; the site only counts anonymous page views.
-- Full details: [Privacy Policy](https://mdify-app.vercel.app/privacy) and [Terms of Service](https://mdify-app.vercel.app/terms).
+- Full details: [Privacy Policy](https://mdify.devbehindyou.com/privacy) and [Terms of Service](https://mdify.devbehindyou.com/terms).
 
 ## FAQ
 
 ### How do I convert a PDF to Markdown for free?
 
-Open [mdify-app.vercel.app](https://mdify-app.vercel.app), drop the PDF on the page and press Convert all. MDify returns a Markdown file with the headings, lists and tables of the original. It is free, needs no account, and handles up to 20 files per batch with a 15 MB limit per document.
+Open [mdify.devbehindyou.com](https://mdify.devbehindyou.com), drop the PDF on the page and press Convert all. MDify returns a Markdown file with the headings, lists and tables of the original. It is free, needs no account, and handles up to 20 files per batch with a 15 MB limit per document.
 
 ### Does converting a PDF to Markdown save ChatGPT tokens?
 

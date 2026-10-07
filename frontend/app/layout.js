@@ -36,7 +36,7 @@ export const metadata = {
   },
   description: DESCRIPTION,
   keywords: KEYWORDS,
-  authors: [{ name: 'DevBehindYou', url: 'https://github.com/DevBehindYou' }],
+  authors: [{ name: 'DevBehindYou', url: 'https://devbehindyou.com' }],
   creator: 'DevBehindYou',
   publisher: 'DevBehindYou',
   category: 'Productivity',

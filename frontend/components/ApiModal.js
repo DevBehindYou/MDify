@@ -9,7 +9,7 @@ export default function ApiModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  const curlExample = `curl -X POST https://mdify-app.vercel.app/api/convert \\
+  const curlExample = `curl -X POST https://mdify.devbehindyou.com/api/convert \\
   -F "file=@document.pdf" \\
   -F "profile=RAG-ready"`;
 
