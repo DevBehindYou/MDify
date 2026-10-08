@@ -1,5 +1,5 @@
 // CI-only PostgreSQL concurrency checks. Never targets a production database.
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -10,7 +10,51 @@ if (process.env.PGDATABASE !== 'mdify_ci' || !['127.0.0.1','localhost'].includes
 const run=promisify(execFile);
 const sql=async s=>(await run('psql',['--no-psqlrc','-v','ON_ERROR_STOP=1','-At','-c',s],{timeout:30_000})).stdout.trim();
 await sql(SUPABASE_SHIM);
-for(const name of fs.readdirSync(MIGRATIONS_DIR).filter(n=>n.endsWith('.sql')).sort()) await sql(fs.readFileSync(`${MIGRATIONS_DIR}/${name}`,'utf8'));
+async function migrateStorageWithHeldLegacyUpload(migration) {
+  const definition=await sql("select pg_get_functiondef('public.create_upload_job(text,text,text,bigint,text,text,text,text)'::regprocedure)");
+  const legacy=definition.replace('FUNCTION public.create_upload_job(', 'FUNCTION public.fixture_legacy_upload(');
+  assert.notEqual(legacy,definition); await sql(legacy);
+  const holder=spawn('psql',['--no-psqlrc','-qAt','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe']});
+  let output='',error=''; let resolveReady,rejectReady;
+  const ready=new Promise((resolve,reject)=>{resolveReady=resolve;rejectReady=reject;});
+  holder.stdout.on('data',chunk=>{output+=chunk;const match=/HELD:([0-9a-f-]{36})/.exec(output);if(match)resolveReady(match[1]);});
+  holder.stderr.on('data',chunk=>{error+=chunk;});
+  const done=new Promise((resolve,reject)=>{
+    holder.on('error',e=>{rejectReady(e);reject(e);});
+    holder.on('close',code=>{if(code===0)resolve();else {const e=Error(`legacy holder exited ${code}: ${error}`);rejectReady(e);reject(e);}});
+  });
+  done.catch(()=>{}); // The finally block still observes termination.
+  const timeout=setTimeout(()=>{rejectReady(Error('legacy holder timed out'));holder.kill();},30_000);
+  let migrationDone;
+  try {
+    holder.stdin.write("begin;\nselect 'HELD:' || (public.create_upload_job('mdify-pro-files','held.txt','txt',12,null,'standard','DOCUMENT','NORMAL')->>'job_id');\n");
+    const heldId=await ready;
+    migrationDone=sql(`set application_name='mdify-migration-fixture'; begin isolation level read committed; ${migration} commit;`);
+    migrationDone.catch(()=>{});
+    let blocked=false;
+    const deadline=Date.now()+10_000;
+    while(Date.now()<deadline) {
+      blocked=await sql("select exists(select 1 from pg_locks l join pg_stat_activity a on a.pid=l.pid where a.application_name='mdify-migration-fixture' and not l.granted and l.relation in ('public.jobs'::regclass,'public.file_objects'::regclass))") === 't';
+      if(blocked)break;
+      await new Promise(resolve=>setTimeout(resolve,50));
+    }
+    assert.equal(blocked,true,'migration must drain the legacy writer before backfill');
+    holder.stdin.end('commit;\n'); await done; await migrationDone;
+    assert.equal(await sql(`select count(*) from public.job_storage_reservations where job_id='${heldId}' and reserved_bytes=15728640`),'1');
+    const after=JSON.parse(await sql("select public.fixture_legacy_upload('mdify-pro-files','late-body.txt','txt',12,null,'standard','DOCUMENT','NORMAL')"));
+    assert.equal(after.allowed,true);
+    assert.equal(await sql(`select count(*) from public.job_storage_reservations where job_id='${after.job_id}'`),'1');
+    await sql(`update public.jobs set status='COMPLETED' where job_id in ('${heldId}','${after.job_id}'); update public.job_storage_reservations set upload_guard_until=now()-interval '1 second';`);
+    console.log('PostgreSQL: migration drains a held legacy transaction and guards old RPC bodies');
+  } finally {
+    clearTimeout(timeout); holder.kill(); await done.catch(()=>{}); if(migrationDone)await migrationDone.catch(()=>{});
+  }
+}
+for(const name of fs.readdirSync(MIGRATIONS_DIR).filter(n=>n.endsWith('.sql')).sort()) {
+  const migration=fs.readFileSync(`${MIGRATIONS_DIR}/${name}`,'utf8');
+  if(name==='20261007000000_mdify_storage_reservations.sql')await migrateStorageWithHeldLegacyUpload(migration);
+  else await sql(migration);
+}
 const id='00000000-0000-4000-8000-000000000001';const bucket='mdify-pro-files';
 await sql(`insert into public.jobs(job_id,status,source_type,source_extension,original_filename) values('${id}','UPLOADING','DOCUMENT','txt','fixture.txt');
 insert into public.file_objects(job_id,bucket,object_path,kind,size_bytes) values('${id}','${bucket}','jobs/${id}/input/source.txt','INPUT',12);`);
@@ -92,3 +136,45 @@ assert.equal(legacyCapacity.filter(r=>r.status==='fulfilled').length,1);
 assert.ok(legacyCapacity.filter(r=>r.status==='rejected').every(r=>/handling many jobs/.test(r.reason.stderr)));
 assert.equal(await sql(`select count(*) from public.jobs where status in ('UPLOADING','QUEUED','PROCESSING','CANCEL_REQUESTED')`),'32');
 console.log('PostgreSQL: competing atomic upload admissions and legacy inserts respect active-job capacity');
+
+// Independent sessions contend for one remaining storage reservation. A tiny
+// declared upload still holds the 15 MiB bucket ceiling while its token lives.
+await sql("update public.jobs set status='COMPLETED' where status in ('UPLOADING','QUEUED','PROCESSING','CANCEL_REQUESTED')");
+await sql("update public.job_storage_reservations set upload_guard_until=now()-interval '1 second'");
+await sql("insert into storage.objects(bucket_id,name,metadata) values('mdify-pro-files','storage-race-existing','{\"size\":823132160}')");
+const storageRace=await Promise.all(Array.from({length:12},(_,i)=>sql(i%2
+ ? `select public.fixture_legacy_upload('mdify-pro-files','race.txt','txt',12,null,'standard','DOCUMENT','NORMAL')`
+ : `select public.create_reserved_upload_job('mdify-pro-files','race.txt','txt',12,null,'standard','DOCUMENT','NORMAL',838860800)`)));
+const storageResults=storageRace.map(JSON.parse);
+assert.equal(storageResults.filter(r=>r.allowed).length,1);
+assert.ok(storageResults.filter(r=>!r.allowed).every(r=>r.reason===undefined||r.reason==='storage_capacity'));
+assert.equal(await sql('select count(*) from public.job_storage_reservations'),'1');
+const storageJob=storageResults.find(r=>r.allowed).job_id;
+await sql(`update public.jobs set status='CANCELLED',files_deleted_at=now() where job_id='${storageJob}'`);
+assert.equal(JSON.parse(await sql(`select public.create_reserved_upload_job('mdify-pro-files','race.txt','txt',12,null,'standard','DOCUMENT','NORMAL',838860800)`)).allowed,false);
+await sql(`update public.job_storage_reservations set upload_guard_until=now()-interval '1 second' where job_id='${storageJob}'`);
+assert.equal(JSON.parse(await sql(`select public.create_upload_job('mdify-pro-files','rollback.txt','txt',12,null,'standard','DOCUMENT','NORMAL')`)).allowed,true);
+console.log('PostgreSQL: competing storage reservations, cancelled-token guards and rollback RPC passed');
+
+
+// Transfer accounting remains invariant while a second connection commits
+// arrivals/deletions. Each absent/present input consumes exactly its ceiling.
+await sql("delete from storage.objects where name='storage-race-existing'");
+const snapshotJob=JSON.parse(await sql(`select public.create_reserved_upload_job('mdify-pro-files','snapshot.txt','txt',12,null,'standard','DOCUMENT','NORMAL',838860800)`)).job_id;
+const snapshotPath=`jobs/${snapshotJob}/input/source.txt`;
+// Isolate this fixture's reservation and usage for a constant invariant.
+await sql(`update public.jobs set status='COMPLETED' where job_id<>'${snapshotJob}'`);
+await sql(`update public.job_storage_reservations set upload_guard_until=now()-interval '1 second' where job_id<>'${snapshotJob}'`);
+await sql(`delete from public.job_storage_reservations where job_id<>'${snapshotJob}'`);
+await sql('delete from storage.objects');
+await Promise.all([
+ (async()=>{for(let n=0;n<30;n++){
+  await sql(`insert into storage.objects(bucket_id,name,metadata) values('mdify-pro-files','${snapshotPath}','{\"size\":15728640}')`);
+  await sql(`delete from storage.objects where name='${snapshotPath}'`);
+ }})(),
+ (async()=>{for(let n=0;n<60;n++){
+  const snapshot=JSON.parse(await sql(`select public.storage_capacity_snapshot('mdify-pro-files')`));
+  assert.equal(snapshot.committed_bytes,15728640);
+ }})(),
+]);
+console.log('PostgreSQL: concurrent input arrivals/deletions preserve snapshot commitment invariant');
