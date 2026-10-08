@@ -5,7 +5,8 @@ reserving capacity. The database now serializes admission for the configured buc
 counts fresh actual bytes plus unspent reservations, and creates the reservation, job
 and pending input together. No signed URL is issued on refusal or unknown capacity.
 The previous `create_upload_job` signature routes through the same safeguard during
-rolling deployment and rollback. No new secret or Edge Function deployment is needed.
+rolling deployment and rollback. An input-insertion trigger also protects old RPC bodies
+and legacy service inserts. Installing it fences prior file writers before backfill. No new secret or Edge Function deployment is needed.
 
 ## Accounting and trade-offs
 
@@ -46,9 +47,9 @@ reservations; the service-only snapshot RPC exposes both for operational inspect
    is not a full database backup.
 3. In project `ppmbqgecdbrezxedyeur`, apply
    `supabase/migrations/20261007000000_mdify_storage_reservations.sql` in an explicit
-   BEGIN/COMMIT transaction, then run `supabase/tests/verify_permissions.sql`.
+   READ COMMITTED BEGIN/COMMIT transaction, then run `supabase/tests/verify_permissions.sql`.
    Existing jobs and retention schedules are not rewritten. Existing in-flight/recent
-   input jobs receive reservations. Reapplying the migration does not extend guards.
+   input jobs receive reservations after the insertion trigger has drained prior writers. Reapplying the migration does not extend guards.
 4. Inspect `select public.storage_capacity_snapshot('mdify-pro-files');`. If existing
    usage/reservations exceed 800 MiB, new uploads refuse safely while existing jobs
    finish. Missing/invalid Storage size metadata requires investigation; do not bypass

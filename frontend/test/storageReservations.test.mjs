@@ -141,3 +141,16 @@ test('environment budgets can lower the shared ceiling but cannot raise it or us
     assert.equal(storageBudgetBytes({ STORAGE_BUDGET_BYTES: value }), 800 * MiB);
   }
 });
+
+
+test('legacy input inserts reserve capacity and refuse when forecast is full', async t => {
+  const { pg, db } = await fixture(t);
+  await stored(pg, 'existing', 785 * MiB);
+  const a = (await pg.query("insert into public.jobs(status,source_type) values('UPLOADING','DOCUMENT') returning job_id")).rows[0].job_id;
+  await pg.query("insert into public.file_objects(job_id,bucket,object_path,kind,size_bytes) values($1,$2,$3,'INPUT',12)", [a, bucket, `jobs/${a}/input/source.txt`]);
+  assert.equal((await snapshot(db)).committed_bytes, 800 * MiB);
+  const b = (await pg.query("insert into public.jobs(status,source_type) values('UPLOADING','DOCUMENT') returning job_id")).rows[0].job_id;
+  await assert.rejects(pg.query("insert into public.file_objects(job_id,bucket,object_path,kind,size_bytes) values($1,$2,$3,'INPUT',12)", [b, bucket, `jobs/${b}/input/source.txt`]), /lot of files/);
+  assert.equal(await count(pg, 'job_storage_reservations'), 1);
+  assert.equal(await count(pg, 'file_objects'), 1);
+});
