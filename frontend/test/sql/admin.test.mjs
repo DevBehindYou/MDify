@@ -12,7 +12,7 @@ async function newJob(db, { name = 'a.pdf', createdAt = null, status = 'COMPLETE
   );
   const jobId = rows[0].job_id;
   await db.query(
-    "insert into public.file_objects (job_id, bucket, object_path, kind, size_bytes, storage_status) values ($1, 'b', $2, 'INPUT', 100, 'ACTIVE'), ($1, 'b', $3, 'OUTPUT', 40, 'ACTIVE')",
+    "insert into public.file_objects (job_id, bucket, object_path, kind, size_bytes, storage_status) values ($1, 'mdify-pro-files', $2, 'INPUT', 100, 'ACTIVE'), ($1, 'mdify-pro-files', $3, 'OUTPUT', 40, 'ACTIVE')",
     [jobId, `jobs/${jobId}/input/source.pdf`, `jobs/${jobId}/output/result.md`]
   );
   return jobId;

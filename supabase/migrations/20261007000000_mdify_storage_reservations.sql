@@ -2,7 +2,8 @@
 -- Serializes upload forecasts; conversion expansion remains an estimate, not
 -- enforcement on every worker write. No Storage-owned tables are modified.
 create table if not exists public.job_storage_reservations (
-  job_id uuid not null references public.jobs(job_id) on delete restrict,
+  -- No FK/cascade: signed upload authorization can outlive hard job deletion.
+  job_id uuid not null,
   bucket text not null,
   input_path text not null,
   reserved_bytes bigint not null check (reserved_bytes > 0),
@@ -10,6 +11,8 @@ create table if not exists public.job_storage_reservations (
   upload_guard_until timestamptz not null,
   primary key (job_id, bucket)
 );
+-- Also supports reapplication over an earlier unreleased draft schema.
+alter table public.job_storage_reservations drop constraint if exists job_storage_reservations_job_id_fkey;
 create index if not exists idx_storage_reservations_bucket on public.job_storage_reservations(bucket);
 alter table public.job_storage_reservations enable row level security;
 revoke all on public.job_storage_reservations from public, anon, authenticated;
@@ -96,9 +99,10 @@ begin
   -- actual single-object ceiling and refuse an unknown/raised upload limit.
   if v_ceiling is null or v_ceiling <= 0 or v_ceiling > 15728640 then raise exception 'unsupported bucket upload limit'; end if;
   if p_size > v_ceiling then raise exception 'upload exceeds bucket limit'; end if;
-  delete from public.job_storage_reservations r using public.jobs existing_job
-    where r.bucket=p_bucket and existing_job.job_id=r.job_id and r.upload_guard_until<=clock_timestamp()
-      and existing_job.status not in ('UPLOADING','QUEUED','PROCESSING','CANCEL_REQUESTED');
+  delete from public.job_storage_reservations r
+    where r.bucket=p_bucket and r.upload_guard_until<=clock_timestamp()
+      and not exists(select 1 from public.jobs existing_job where existing_job.job_id=r.job_id
+        and existing_job.status in ('UPLOADING','QUEUED','PROCESSING','CANCEL_REQUESTED'));
   v_needed := greatest(v_ceiling,p_size * case when p_source_type in ('PDF','ARCHIVE') then 3 else 2 end);
   v_snapshot := public.storage_capacity_snapshot(p_bucket);
   if (v_snapshot->>'committed_bytes')::bigint + v_needed > v_budget then

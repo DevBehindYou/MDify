@@ -62,7 +62,7 @@ test('active and pending cancellation reservations do not expire with the upload
     await pg.query('update public.jobs set status=$1 where job_id=$2', [status, a.job_id]);
     assert.equal((await snapshot(db)).pending_bytes, 15 * MiB);
   }
-  await assert.rejects(pg.query('delete from public.jobs where job_id=$1', [a.job_id]), /foreign key/);
+
 });
 
 test('unknown signing outcome retains its durable storage reservation', async t => {
@@ -153,4 +153,22 @@ test('legacy input inserts reserve capacity and refuse when forecast is full', a
   await assert.rejects(pg.query("insert into public.file_objects(job_id,bucket,object_path,kind,size_bytes) values($1,$2,$3,'INPUT',12)", [b, bucket, `jobs/${b}/input/source.txt`]), /lot of files/);
   assert.equal(await count(pg, 'job_storage_reservations'), 1);
   assert.equal(await count(pg, 'file_objects'), 1);
+});
+
+
+test('hard job deletion preserves token headroom through late upload and expiry', async t => {
+  const { pg, db } = await fixture(t);
+  const a = await createUpload(db, input);
+  await pg.query("update public.jobs set status='CANCELLED',files_deleted_at=now() where job_id=$1", [a.job_id]);
+  await pg.query('delete from public.jobs where job_id=$1', [a.job_id]);
+  assert.equal(await count(pg, 'jobs'), 0);
+  assert.equal((await snapshot(db)).pending_bytes, 15 * MiB);
+  await assert.rejects(createUpload(db, { ...input, env: { ...env, STORAGE_BUDGET_BYTES: String(15 * MiB) } }), busy);
+  await stored(pg, a.object_path, 15 * MiB);
+  assert.equal((await snapshot(db)).committed_bytes, 15 * MiB);
+  await pg.exec("update public.job_storage_reservations set upload_guard_until=now()-interval '1 second'");
+  assert.equal((await snapshot(db)).pending_bytes, 0);
+  await createUpload(db, { ...input, env: { ...env, STORAGE_BUDGET_BYTES: String(30 * MiB) } });
+  assert.equal(await count(pg, 'job_storage_reservations'), 1);
+  assert.equal((await snapshot(db)).used_bytes, 15 * MiB);
 });

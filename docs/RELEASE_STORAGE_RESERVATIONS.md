@@ -26,7 +26,8 @@ and legacy service inserts. Installing it fences prior file writers before backf
   signing and in-flight grace. An unknown signing outcome keeps its reservation.
 - Expired terminal reservations are pruned on the next admission. Active reservations
   do not expire. Actual retained files continue to count after pruning. Hard job
-  deletion is restricted until its reservation has safely expired and been pruned.
+  deletion keeps a reservation with its job ID and generated input path while its guard is live;
+  no original filename or content is retained by the reservation.
 - A newly issued tiny upload can hold almost 15 MiB for three hours. This deliberately
   trades admission throughput for protection against misdeclared or late uploads.
   No production saturation flood should be used to test the ceiling.
