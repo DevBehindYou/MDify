@@ -10,7 +10,7 @@ async function newJob(db, { name = 'a.pdf', size = 1000 } = {}) {
   );
   const jobId = rows[0].job_id;
   await db.query(
-    "insert into public.file_objects (job_id, bucket, object_path, kind, size_bytes) values ($1, 'b', $2, 'INPUT', $3)",
+    "insert into public.file_objects (job_id, bucket, object_path, kind, size_bytes) values ($1, 'mdify-pro-files', $2, 'INPUT', $3)",
     [jobId, `jobs/${jobId}/input/source.pdf`, size]
   );
   await db.query('select public.confirm_upload($1)', [jobId]);
@@ -185,7 +185,7 @@ test('storage usage sums object sizes per bucket', async () => {
   const db = await freshDb();
   await db.query("insert into storage.buckets (id, name) values ('other', 'other') on conflict do nothing");
   await db.query(`insert into storage.objects (bucket_id, name, metadata) values
-    ('mdify-pro-files', 'a', '{"size": 1000}'), ('mdify-pro-files', 'b', '{"size": 2500}'), ('other', 'c', '{"size": 99}')`);
+    ('mdify-pro-files', 'a', '{"size": 1000}'), ('mdify-pro-files', 'mdify-pro-files', '{"size": 2500}'), ('other', 'c', '{"size": 99}')`);
   assert.equal(Number((await db.query("select public.storage_usage_bytes('mdify-pro-files') as n")).rows[0].n), 3500);
   const bucket = (await db.query("select file_size_limit from storage.buckets where id = 'mdify-pro-files'")).rows[0];
   assert.equal(Number(bucket.file_size_limit), 15 * 1024 * 1024);

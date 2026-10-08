@@ -40,7 +40,7 @@ listed only.
 | Wake all backends on page open | `frontend/lib/server/wake.js`, `app/api/wake`, `components/WakeOnOpen.js` | VERIFIED (unit tests, browser) |
 | Dispatcher: pool routing, FNV-1a hash, one peer retry | `frontend/lib/server/dispatcher.js` | VERIFIED (unit tests + live failover) |
 | Durable work queue (background jobs) | `supabase/migrations/20260927000000_mdify_work_queue.sql`, `frontend/lib/server/jobQueue.js`, `jobService.js` | VERIFIED on real Postgres (PGlite) with fake backends; LIVE: the tick runs every minute and returns 200 — see `docs/BACKGROUND_JOBS.md` |
-| Storage budget check before new jobs | `jobService.checkStorageBudget` | VERIFIED (tests) |
+| Atomic upload storage reservation before signing | `create_reserved_upload_job` + `storage_capacity_snapshot` | VERIFIED (tests); conversion expansion remains estimated |
 | Scanned-page PDFs (text pages direct, scanned pages to O1/O2) | `backendN/app/pdf_tasks.py` | VERIFIED locally (real PDFs, 10 tests) |
 | ZIP files (backendZ, Z1/Z2) | `backendZ/app/archive.py`, `archive_tasks.py` | VERIFIED locally (38 tests, live run through the frontend); LIVE on Vercel (Tokyo): ready, secret and storage configured |
 | N1/N2 normal backend (`backendN`) | FastAPI + MarkItDown 0.1.8 | VERIFIED locally; LIVE on Vercel (Tokyo): ready, secret and storage configured |
